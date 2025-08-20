@@ -99,38 +99,54 @@ def calcular_porcentagem_correta(grupo):
         return 0.0
     return porcentagens_validas.mean()
 
+# --- MAPA DE ORDEM DAS ETAPAS ---
+mapa_ordem = {
+    "PL-ER-E-IP": 1,
+    "APROV-ER-(NEO)": 2,
+    "APROV-IP-(NEO)": 3,
+    "PIQ": 4,
+    "SOLIC-CONEXÃO": 5,
+    "CONEXÃO": 6,
+    "PROJ-EXEC": 7,
+    "ORÇ": 8,
+    "SUP": 9,
+    "EXECUÇÃO-TER": 10,
+    "EXECUÇÃO-ER": 11,
+    "EXECUÇÃO-IP": 12,
+    "INCORPORAÇÃO": 13,
+    "PINT-BAR": 14,
+    "COMISSIONAMENTO": 15,
+    "LIG-IP": 16,
+    "CARTA": 17,
+    "ENTREGA": 18
+}
+
 # ORDEM CORRIGIDA DAS ETAPAS
 sigla_para_nome_completo = {
-    "PL-ER-E-IP":    "1. PL ER E IP",
-    "APROV-ER-(NEO)": "2. APROVAÇÃO DO PROJETO DE E.R. (NEOENERGIA)",
-    "APROV-IP-(NEO)": "3. APROVAÇÃO DO PROJETO DE IP (NEOENERGIA)",
-    "PIQ":           "4. EXECUÇÃO PIQUETE PDE",
-    "SOLIC-CONEXÃO": "5. SOLICITAÇÃO DE CONEXÃO",
-    "CONEXÃO":       "6. CONEXÃO",
-    "PROJ-EXEC":     "7. PROJETO EXECUTIVO",
-    "ORÇ":          "8. ORÇAMENTO", 
-    "SUP":          "9. SUPRIMENTOS",
-    "EXECUÇÃO-TER":  "10. EXECUÇÃO TER",
-    "EXECUÇÃO-ER":   "11. EXECUÇÃO ER",
-    "EXECUÇÃO-IP":   "12. EXECUÇÃO IP",
-    "INCORPORAÇÃO":  "13. INCORPORAÇÃO",
-    "PINT-BAR":     "14. PINTURA DOS BARRAMENTOS",
-    "COMISSIONAMENTO": "15. COMISSIONAMENTO",
-    "LIG-IP":        "16. LIGAÇÃO DA IP",
-    "CARTA":         "17. CARTA DE ENTREGA ER",
-    "ENTREGA":       "18. NECESSIDADE DE ENTREGA"
+    "PL-ER-E-IP":    "PL ER E IP",
+    "APROV-ER-(NEO)": "APROVAÇÃO E.R. (NEO)",
+    "APROV-IP-(NEO)": "APROVAÇÃO IP (NEO)",
+    "PIQ":           "EXECUÇÃO PIQUETE PDE",
+    "SOLIC-CONEXÃO": "SOLICITAÇÃO DE CONEXÃO",
+    "CONEXÃO":       "CONEXÃO",
+    "PROJ-EXEC":     "PROJETO EXECUTIVO",
+    "ORÇ":          "ORÇAMENTO", 
+    "SUP":          "SUPRIMENTOS",
+    "EXECUÇÃO-TER":  "EXECUÇÃO TER",
+    "EXECUÇÃO-ER":   "EXECUÇÃO ER",
+    "EXECUÇÃO-IP":   "EXECUÇÃO IP",
+    "INCORPORAÇÃO":  "INCORPORAÇÃO",
+    "PINT-BAR":     "PINTURA DOS BARRAMENTOS",
+    "COMISSIONAMENTO": "COMISSIONAMENTO",
+    "LIG-IP":        "LIGAÇÃO DA IP",
+    "CARTA":         "CARTA DE ENTREGA ER",
+    "ENTREGA":       "NECESSIDADE DE ENTREGA"
 }
 
 nome_completo_para_sigla = {v: k for k, v in sigla_para_nome_completo.items()}
 mapeamento_variacoes_real = {
     "PL ER E IP": "1. PL ER E IP",
-    "APROV-ER-(NEO)": "2. APROVAÇÃO E.R. CONDOMINIAL (NEOENERGIA)",
-    "APROVAÇÃO E.R. CONDOMINIAL": "2. APROVAÇÃO E.R. CONDOMINIAL (NEOENERGIA)",
-    "APROV-IP-(NEO)": "3. APROVAÇÃO IP CONDOMINIAL (NEOENERGIA)",
-    "APROVAÇÃO IP CONDOMINIAL": "3. APROVAÇÃO IP CONDOMINIAL (NEOENERGIA)",
-    "PIQ": "4. EXECUÇÃO PIQUETE PDE",
-    "PIQUETE PDE": "4. EXECUÇÃO PIQUETE PDE",
-    "EXEC PIQ": "4. EXECUÇÃO PIQUETE PDE",
+    
 }
 
 def padronizar_etapa(etapa_str):
@@ -182,13 +198,15 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
     num_empreendimentos = df['Empreendimento'].nunique()
     num_etapas = df['Etapa'].nunique()
 
+    # Adiciona coluna de ordem baseada no mapa_ordem
+    df['Etapa_Ordem'] = df['Etapa'].apply(lambda x: mapa_ordem.get(x, 999))
+    
     if num_empreendimentos > 1 and num_etapas == 1:
         df['Empreendimento'] = df['Empreendimento'].str.replace('CONDOMINIO ', '', regex=False)
         sort_col = 'Inicio_Real' if tipo_visualizacao == "Real" else 'Inicio_Prevista'
         df = df.sort_values(by=sort_col, ascending=True, na_position='last').reset_index(drop=True)
     else:
-        ordem_etapas = list(sigla_para_nome_completo.keys())
-        df['Etapa_Ordem'] = df['Etapa'].apply(lambda x: ordem_etapas.index(x) if x in ordem_etapas else len(ordem_etapas))
+        # Ordena pela ordem definida no mapa_ordem
         df = df.sort_values(['Empreendimento', 'Etapa_Ordem']).reset_index(drop=True)
 
     hoje = pd.Timestamp.now()
@@ -203,8 +221,11 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
     else:
         empreendimentos_unicos = df['Empreendimento'].unique()
         for empreendimento in empreendimentos_unicos:
-            etapas_do_empreendimento = df[df['Empreendimento'] == empreendimento]['Etapa'].unique()
-            for etapa in etapas_do_empreendimento:
+            # Ordena as etapas pela ordem do mapa_ordem
+            etapas_do_empreendimento = df[df['Empreendimento'] == empreendimento]
+            etapas_ordenadas = etapas_do_empreendimento.sort_values('Etapa_Ordem')['Etapa'].unique()
+            
+            for etapa in etapas_ordenadas:
                 rotulo = f'{empreendimento}||{etapa}'
                 rotulo_para_posicao[rotulo] = posicao
                 posicao += 1
@@ -230,7 +251,8 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         'Empreendimento': 'first', 'Etapa': 'first',
         'Inicio_Prevista': 'min', 'Termino_Prevista': 'max',
         'Inicio_Real': 'min', 'Termino_Real': 'max',
-        '% concluído': 'max'
+        '% concluído': 'max',
+        'Etapa_Ordem': 'first'  # Adiciona a ordem para usar na exibição
     }).reset_index()
 
     # --- Desenho da Tabela ---
@@ -249,10 +271,17 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         eixo_tabela.add_patch(Rectangle((0.01, y_pos - 0.5), 0.98, 1.0,
                            facecolor=estilo_celula["facecolor"], edgecolor=estilo_celula["edgecolor"], lw=estilo_celula["lw"]))
 
-        texto_principal = linha['Empreendimento'] if (num_empreendimentos > 1 and num_etapas == 1) else sigla_para_nome_completo.get(linha['Etapa'], linha['Etapa'])
+        # Usa o nome completo com numeração da etapa
+        if num_empreendimentos > 1 and num_etapas == 1:
+            texto_principal = linha['Empreendimento']
+        else:
+            ordem = linha['Etapa_Ordem']
+            nome_etapa = sigla_para_nome_completo.get(linha['Etapa'], linha['Etapa'])
+            texto_principal = f"{ordem}. {nome_etapa}" if ordem != 999 else nome_etapa
+        
         eixo_tabela.text(0.04, y_pos - 0.2, texto_principal, va="center", ha="left", **StyleConfig.FONTE_ETAPA)
         
-        # 3. MODIFICADO: Adiciona a contagem de dias úteis ao texto
+        # Adiciona a contagem de dias úteis ao texto
         dias_uteis_prev = calcular_dias_uteis(linha['Inicio_Prevista'], linha['Termino_Prevista'])
         dias_uteis_real = calcular_dias_uteis(linha['Inicio_Real'], linha['Termino_Real'])
         
@@ -282,7 +311,6 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         eixo_tabela.add_patch(Rectangle((0.78, y_pos - 0.2), 0.2, 0.4, facecolor=cor_caixa, edgecolor="#d1d5db", lw=0.8))
         percentual_texto = f"{percentual:.1f}%" if percentual % 1 != 0 else f"{int(percentual)}%"
         eixo_tabela.text(0.88, y_pos, percentual_texto, va="center", ha="center", color=cor_texto, **StyleConfig.FONTE_PORCENTAGEM)
-
     # --- Desenho das Barras ---
     datas_relevantes = []
     for _, linha in dados_consolidados.iterrows():
@@ -332,7 +360,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
 
     if num_empreendimentos == 1 and num_etapas > 1:
         empreendimento = df["Empreendimento"].unique()[0]
-        df_assinatura = df[(df["Empreendimento"] == empreendimento) & (df["Etapa"] == "ASS")]
+        df_assinatura = df[(df["Empreendimento"] == empreendimento) & (df["Etapa"] == "ENTREGA")]
         if not df_assinatura.empty:
             data_meta, tipo_meta = (None, "")
             if pd.notna(df_assinatura["Inicio_Prevista"].iloc[0]):
@@ -344,7 +372,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
                 eixo_gantt.axvline(data_meta, color=StyleConfig.COR_META_ASSINATURA, linestyle="--", linewidth=1.7, alpha=0.7)
                 y_texto = eixo_gantt.get_ylim()[1] + 0.2
                 eixo_gantt.text(data_meta, y_texto,
-                            f"Meta {tipo_meta}\nAssinatura: {data_meta.strftime('%d/%m/%y')}", 
+                            f"Meta {tipo_meta}\nEntrega: {data_meta.strftime('%d/%m/%y')}", 
                             color=StyleConfig.COR_META_ASSINATURA, fontsize=10, ha="center", va="top",
                             bbox=dict(facecolor="white", alpha=0.8, edgecolor=StyleConfig.COR_META_ASSINATURA, boxstyle="round,pad=0.5"))
 
