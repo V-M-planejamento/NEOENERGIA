@@ -14,7 +14,7 @@ from popup import show_welcome_screen  # Importando o sistema de popup
 from st_aggrid import AgGrid
 from calculate_business_days import calculate_business_days
 
-# Tenta importar os scripts de processamento de dados.
+# Tenta importar os scripts de processamento de dados. 'modulos_venda_tratados.csv'
 try:
     from processa_neo import tratar_e_retornar_dados_previstos
     from processa_neo_smartsheet import main as processar_smartsheet_main
@@ -99,21 +99,22 @@ def calcular_porcentagem_correta(grupo):
         return 0.0
     return porcentagens_validas.mean()
 
+# ORDEM CORRIGIDA DAS ETAPAS
 sigla_para_nome_completo = {
     "PL-ER-E-IP":    "1. PL ER E IP",
-    "APROV-ER-(NEO)": "2. APROVAÇÃO E.R. CONDOMINIAL (NEOENERGIA)",
-    "APROV-IP-(NEO)": "3. APROVAÇÃO IP CONDOMINIAL (NEOENERGIA)",
+    "APROV-ER-(NEO)": "2. APROVAÇÃO DO PROJETO DE E.R. (NEOENERGIA)",
+    "APROV-IP-(NEO)": "3. APROVAÇÃO DO PROJETO DE IP (NEOENERGIA)",
     "PIQ":           "4. EXECUÇÃO PIQUETE PDE",
     "SOLIC-CONEXÃO": "5. SOLICITAÇÃO DE CONEXÃO",
     "CONEXÃO":       "6. CONEXÃO",
     "PROJ-EXEC":     "7. PROJETO EXECUTIVO",
-    "ORÇ.":          "8. ORÇAMENTO",
-    "SUP.":          "9. SUPRIMENTOS",
+    "ORÇ":          "8. ORÇAMENTO", 
+    "SUP":          "9. SUPRIMENTOS",
     "EXECUÇÃO-TER":  "10. EXECUÇÃO TER",
     "EXECUÇÃO-ER":   "11. EXECUÇÃO ER",
     "EXECUÇÃO-IP":   "12. EXECUÇÃO IP",
     "INCORPORAÇÃO":  "13. INCORPORAÇÃO",
-    "PINT-BAR.":     "14. PINTURA DOS BARRAMENTOS",
+    "PINT-BAR":     "14. PINTURA DOS BARRAMENTOS",
     "COMISSIONAMENTO": "15. COMISSIONAMENTO",
     "LIG-IP":        "16. LIGAÇÃO DA IP",
     "CARTA":         "17. CARTA DE ENTREGA ER",
@@ -122,7 +123,6 @@ sigla_para_nome_completo = {
 
 nome_completo_para_sigla = {v: k for k, v in sigla_para_nome_completo.items()}
 mapeamento_variacoes_real = {
-    "PL-ER-E-IP": "PL ER E IP",
     "PL ER E IP": "1. PL ER E IP",
     "APROV-ER-(NEO)": "2. APROVAÇÃO E.R. CONDOMINIAL (NEOENERGIA)",
     "APROVAÇÃO E.R. CONDOMINIAL": "2. APROVAÇÃO E.R. CONDOMINIAL (NEOENERGIA)",
@@ -374,7 +374,7 @@ def load_data():
     if processar_smartsheet_main:
         try:
             processar_smartsheet_main()
-            df_real = pd.read_csv('modulos_venda_tratados.csv')
+            df_real = pd.read_csv('Dados Reais Tratados e Ordenados.csv')
         except Exception as e:
             st.warning(f"Erro ao carregar dados reais do Smartsheet: {e}")
 

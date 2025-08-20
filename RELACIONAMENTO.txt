@@ -1,0 +1,84 @@
+| Nº | Etapa                      | Colunas                                                       |
+| -- | -------------------------- | ------------------------------------------------------------- |
+| 1  | PL-ER-E-IP                 | `PL-ER-E-IP.PREV.INÍCIO`, `PL-ER-E-IP.PREV.TÉRMINO`           |
+| 2  | APROV-ER-(NEO)             | `APROV-ER-(NEO).PREV.INÍCIO`, `APROV-ER-(NEO).PREV.TÉRMINO`   |
+| 3  | APROV-IP-(NEO)             | `APROV-IP-(NEO).PREV.INÍCIO`, `APROV-IP-(NEO).PREV.TÉRMINO`   |
+| 4  | EXECUÇÃO PIQUETE PDE (PIQ) | `PIQ.PREV.INÍCIO`, `PIQ.PREV.TÉRMINO`                         |
+| 5  | SOLIC-CONEXÃO              | `SOLIC-CONEXÃO.PREV.INÍCIO`, `SOLIC-CONEXÃO.PREV.TÉRMINO`     |
+| 6  | CONEXÃO                    | `CONEXÃO.PREV.INÍCIO`, `CONEXÃO.PREV.TÉRMINO`                 |
+| 7  | PROJ-EXEC                  | `PROJ-EXEC.PREV.INÍCIO`, `PROJ-EXEC.PREV.TÉRMINO`             |
+| 8  | ORÇ.                       | `ORÇ.PREV.INÍCIO`, `ORÇ.PREV.TÉRMINO`                         |
+| 9  | SUP.                       | `SUP.PREV.INÍCIO`, `SUP.PREV.TÉRMINO`                         |
+| 10 | EXECUÇÃO-TER               | `EXECUÇÃO-TER.PREV.INÍCIO`, `EXECUÇÃO-TER.PREV.TÉRMINO`       |
+| 11 | EXECUÇÃO-ER                | `EXECUÇÃO-ER.PREV.INÍCIO`, `EXECUÇÃO-ER.PREV.TÉRMINO`         |
+| 12 | EXECUÇÃO-IP                | `EXECUÇÃO-IP.PREV.INÍCIO`, `EXECUÇÃO-IP.PREV.TÉRMINO`         |
+| 13 | INCORPORAÇÃO               | `INCORPORAÇÃO.PREV.INÍCIO`, `INCORPORAÇÃO.PREV.TÉRMINO`       |
+| 14 | PINT-BAR.                  | `PINT-BAR.PREV.INÍCIO`, `PINT-BAR.PREV.TÉRMINO`               |
+| 15 | COMISSIONAMENTO            | `COMISSIONAMENTO.PREV.INÍCIO`, `COMISSIONAMENTO.PREV.TÉRMINO` |
+| 16 | LIG-IP                     | `LIG-IP.PREV.INÍCIO`, `LIG-IP.PREV.TÉRMINO`                   |
+| 17 | CARTA                      | `CARTA.PREV.INÍCIO`, `CARTA.PREV.TÉRMINO`                     |
+| 18 | ENTREGA                    | `ENTREGA.PREV.INÍCIO`, `ENTREGA.PREV.TÉRMINO`                 |
+
+"PL-ER-E-IP.PREV.INÍCIO", "PL-ER-E-IP.PREV.TÉRMINO"            
+"APROV-ER-(NEO).PREV.INÍCIO", "APROV-ER-(NEO).PREV.TÉRMINO"   
+"APROV-IP-(NEO).PREV.INÍCIO", "APROV-IP-(NEO).PREV.TÉRMINO"   
+"PIQ.PREV.INÍCIO", "PIQ.PREV.TÉRMINO"                         
+"SOLIC-CONEXÃO.PREV.INÍCIO", "SOLIC-CONEXÃO.PREV.TÉRMINO"     
+"CONEXÃO.PREV.INÍCIO", "CONEXÃO.PREV.TÉRMINO"                 
+"PROJ-EXEC.PREV.INÍCIO", "PROJ-EXEC.PREV.TÉRMINO"             
+"ORÇ.PREV.INÍCIO", "ORÇ.PREV.TÉRMINO"                         
+"SUP.PREV.INÍCIO", "SUP.PREV.TÉRMINO"                         
+"EXECUÇÃO-TER.PREV.INÍCIO", "EXECUÇÃO-TER.PREV.TÉRMINO"       
+"EXECUÇÃO-ER.PREV.INÍCIO", "EXECUÇÃO-ER.PREV.TÉRMINO"         
+"EXECUÇÃO-IP.PREV.INÍCIO", "EXECUÇÃO-IP.PREV.TÉRMINO"         
+"INCORPORAÇÃO.PREV.INÍCIO", "INCORPORAÇÃO.PREV.TÉRMINO"       
+"PINT-BAR.PREV.INÍCIO", "PINT-BAR.PREV.TÉRMINO"               
+"COMISSIONAMENTO.PREV.INÍCIO", "COMISSIONAMENTO.PREV.TÉRMINO" 
+"LIG-IP.PREV.INÍCIO", "LIG-IP.PREV.TÉRMINO"                   
+"CARTA.PREV.INÍCIO", "CARTA.PREV.TÉRMINO"                     
+"ENTREGA.PREV.INÍCIO", "ENTREGA.PREV.TÉRMINO"
+
+1.PL ER E IP:	PL-ER-E-IP
+2.APROVAÇÃO E.R. CONDOMINIAL (NEOENERGIA):	APROV-ER-(NEO)
+3.APROVAÇÃO IP CONDOMINIAL (NEOENERGIA):	APROV-IP-(NEO)
+4.EXECUÇÃO PIQUETE PDE:	PIQ
+5.SOLICITAÇÃO DE CONEXÃO:	SOLIC-CONEXÃO
+6.CONEXÃO:	CONEXÃO
+7.PROJETO EXECUTIVO:	PROJ-EXEC
+8.ORÇAMENTO:	ORÇ.
+9.SUPRIMENTOS:	SUP.
+10.EXECUÇÃO TER:	EXECUÇÃO-TER
+11.EXECUÇÃO ER:	EXECUÇÃO-ER
+12.EXECUÇÃO IP:	EXECUÇÃO-IP
+13.INCORPORAÇÃO:	INCORPORAÇÃO
+14.PINTURA DOS BARRAMENTOS:	PINT-BAR.
+15.COMISSIONAMENTO:	COMISSIONAMENTO
+16.LIGAÇÃO DA IP:	LIG-IP
+17.CARTA DE ENTREGA ER:	CARTA
+18.NECESSIDADE DE ENTREGA:	ENTREGA
+
+
+1.PL-ER-E-IP
+2.APROV-ER-(NEO)
+3.APROV-IP-(NEO)
+4.EXECUÇÃO PIQUETE PDE:	PIQ
+5.SOLIC-CONEXÃO
+6.CONEXÃO
+7.PROJ-EXEC
+8.ORÇ.
+9.SUP.
+10.EXECUÇÃO-TER
+11.EXECUÇÃO-ER
+12.EXECUÇÃO-IP
+13.INCORPORAÇÃO
+14.PINT-BAR.
+15.COMISSIONAMENTO
+16.LIG-IP
+17.CARTA
+18.ENTREGA
+
+
+
+
+
+              
