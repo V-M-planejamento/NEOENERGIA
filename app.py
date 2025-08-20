@@ -363,8 +363,8 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         df_assinatura = df[(df["Empreendimento"] == empreendimento) & (df["Etapa"] == "ENTREGA")]
         if not df_assinatura.empty:
             data_meta, tipo_meta = (None, "")
-            if pd.notna(df_assinatura["Inicio_Prevista"].iloc[0]):
-                data_meta, tipo_meta = df_assinatura["Inicio_Prevista"].iloc[0], "Prevista"
+            if pd.notna(df_assinatura["Termino_Prevista"].iloc[0]):
+                data_meta, tipo_meta = df_assinatura["Termino_Prevista"].iloc[0], "Prevista"
             elif pd.notna(df_assinatura["Inicio_Real"].iloc[0]):
                 data_meta, tipo_meta = df_assinatura["Inicio_Real"].iloc[0], "Real"
 
