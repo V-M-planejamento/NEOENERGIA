@@ -9,6 +9,7 @@ from matplotlib.patches import Patch, Rectangle
 import matplotlib.dates as mdates
 import matplotlib.gridspec as gridspec
 from datetime import datetime
+from matplotlib.legend_handler import HandlerTuple
 from dropdown_component import simple_multiselect_dropdown
 from popup import show_welcome_screen
 from st_aggrid import AgGrid
@@ -411,10 +412,6 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
     eixo_gantt.xaxis.set_major_formatter(mdates.DateFormatter('%m/%y'))
     plt.setp(eixo_gantt.get_xticklabels(), rotation=90, ha='center')
 
-    # Atualiza a legenda para refletir as cores por fase
-    from matplotlib.legend_handler import HandlerTuple
-
-    # Cria os handles em pares para cada fase
     # Cria os handles em pares para cada fase
     handles_legenda = []
     labels_legenda = []
