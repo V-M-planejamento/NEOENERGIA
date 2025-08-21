@@ -1,20 +1,19 @@
 import streamlit as st
 import pandas as pd
-import numpy as np # 1. ADICIONADO: Importar numpy para cálculo de dias úteis
+import numpy as np
 import matplotlib as mpl
 from pathlib import Path
-mpl.use('agg')  # Usar backend não interativo
+mpl.use('agg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch, Rectangle
 import matplotlib.dates as mdates
 import matplotlib.gridspec as gridspec
 from datetime import datetime
-from dropdown_component import simple_multiselect_dropdown  # Importando o componente personalizado
-from popup import show_welcome_screen  # Importando o sistema de popup
+from dropdown_component import simple_multiselect_dropdown
+from popup import show_welcome_screen
 from st_aggrid import AgGrid
-from calculate_business_days import calculate_business_days
+from calculate_business_days import calculate_business_days    
 
-# Tenta importar os scripts de processamento de dados. 'modulos_venda_tratados.csv'
 try:
     from processa_neo import tratar_e_retornar_dados_previstos
     from processa_neo_smartsheet import main as processar_smartsheet_main
@@ -29,8 +28,6 @@ class StyleConfig:
     ALTURA_GANTT_POR_ITEM = 1.2
     ALTURA_BARRA_GANTT = 0.35
     LARGURA_TABELA = 5
-    COR_PREVISTO = '#A8C5DA'
-    COR_REAL = '#174c66'
     COR_HOJE = 'red'
     COR_CONCLUIDO = '#047031'
     COR_ATRASADO = '#a83232'
@@ -44,6 +41,38 @@ class StyleConfig:
     CELULA_IMPAR = {'facecolor': '#f1f3f5', 'edgecolor': '#d1d5db', 'lw': 0.8}
     FUNDO_TABELA = '#f8f9fa'
     ESPACO_ENTRE_EMPREENDIMENTOS = 1.5
+    
+    # Cores por fase (para barras previstas e reais)
+    CORES_POR_FASE = {
+        "ENG.PROD": {"previsto": "#ffe1af", "real": "#ec9c00"},
+        "INFRA": {"previsto": "#b9ddfc", "real": "#45A6F8"},
+        "LEG.": {"previsto": "#ebc7ef", "real": "#A93BB6"},
+        "ORÇ.": {"previsto": "#daac55", "real": "#946305"},
+        "PROD.": {"previsto": "#bdbdbd", "real": "#4d4d4d"},
+        "SUP.": {"previsto": "#c6e7c8", "real": "#2c8532"}
+    }
+
+# --- MAPA DE FASE PARA ETAPAS ---
+FASE_POR_ETAPA = {
+    "PL-ER-E-IP": "ENG.PROD", 
+    "APROV-ER-(NEO)": "LEG.", 
+    "APROV-IP-(NEO)": "LEG.", 
+    "PIQ": "INFRA", 
+    "SOLIC-CONEXÃO": "LEG.", 
+    "CONEXÃO": "LEG.", 
+    "PROJ-EXEC": "ENG.PROD", 
+    "ORÇ": "ORÇ.", 
+    "SUP": "SUP.", 
+    "EXECUÇÃO-TER": "INFRA", 
+    "EXECUÇÃO-ER": "INFRA", 
+    "EXECUÇÃO-IP": "INFRA", 
+    "INCORPORAÇÃO": "LEG.", 
+    "PINT-BAR": "INFRA", 
+    "COMISSIONAMENTO": "LEG.", 
+    "LIG-IP": "LEG.", 
+    "CARTA": "LEG.", 
+    "ENTREGA": "PROD." 
+}
 
 # --- Função para abreviar nomes longos ---
 def abreviar_nome(nome):
@@ -72,15 +101,11 @@ def converter_porcentagem(valor):
 def formatar_data(data):
     return data.strftime("%d/%m/%y") if pd.notna(data) else "N/D"
 
-# 2. ADICIONADO: Função para calcular dias úteis
 def calcular_dias_uteis(inicio, fim):
     """Calcula o número de dias úteis entre duas datas."""
     if pd.notna(inicio) and pd.notna(fim):
-        # Converte as datas para o formato de data do numpy, sem o horário
         data_inicio = np.datetime64(inicio.date())
         data_fim = np.datetime64(fim.date())
-        
-        # Retorna o número de dias úteis (inclui o dia de início)
         return np.busday_count(data_inicio, data_fim) + 1
     return 0
 
@@ -146,7 +171,6 @@ sigla_para_nome_completo = {
 nome_completo_para_sigla = {v: k for k, v in sigla_para_nome_completo.items()}
 mapeamento_variacoes_real = {
     "PL ER E IP": "1. PL ER E IP",
-    
 }
 
 def padronizar_etapa(etapa_str):
@@ -252,7 +276,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         'Inicio_Prevista': 'min', 'Termino_Prevista': 'max',
         'Inicio_Real': 'min', 'Termino_Real': 'max',
         '% concluído': 'max',
-        'Etapa_Ordem': 'first'  # Adiciona a ordem para usar na exibição
+        'Etapa_Ordem': 'first'
     }).reset_index()
 
     # --- Desenho da Tabela ---
@@ -311,17 +335,23 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         eixo_tabela.add_patch(Rectangle((0.78, y_pos - 0.2), 0.2, 0.4, facecolor=cor_caixa, edgecolor="#d1d5db", lw=0.8))
         percentual_texto = f"{percentual:.1f}%" if percentual % 1 != 0 else f"{int(percentual)}%"
         eixo_tabela.text(0.88, y_pos, percentual_texto, va="center", ha="center", color=cor_texto, **StyleConfig.FONTE_PORCENTAGEM)
+    
     # --- Desenho das Barras ---
     datas_relevantes = []
     for _, linha in dados_consolidados.iterrows():
         y_pos = linha['Posicao']
         ALTURA_BARRA = StyleConfig.ALTURA_BARRA_GANTT
         ESPACAMENTO = 0 if tipo_visualizacao != "Ambos" else StyleConfig.ALTURA_BARRA_GANTT * 0.5
+        
+        # Determina a fase da etapa atual
+        fase = FASE_POR_ETAPA.get(linha['Etapa'], "OUTROS")
+        cor_previsto = StyleConfig.CORES_POR_FASE.get(fase, {}).get("previsto", "#A8C5DA")
+        cor_real = StyleConfig.CORES_POR_FASE.get(fase, {}).get("real", "#174c66")
 
         if tipo_visualizacao in ["Ambos", "Previsto"] and pd.notna(linha['Inicio_Prevista']) and pd.notna(linha['Termino_Prevista']):
             duracao = (linha['Termino_Prevista'] - linha['Inicio_Prevista']).days + 3
             eixo_gantt.barh(y=y_pos - ESPACAMENTO, width=duracao, left=linha['Inicio_Prevista'],
-                           height=ALTURA_BARRA, color=StyleConfig.COR_PREVISTO, alpha=0.9,
+                           height=ALTURA_BARRA, color=cor_previsto, alpha=0.9,
                            antialiased=False)
             datas_relevantes.extend([linha['Inicio_Prevista'], linha['Termino_Prevista']])
 
@@ -329,7 +359,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
             termino_real = linha['Termino_Real'] if pd.notna(linha['Termino_Real']) else hoje
             duracao = (termino_real - linha['Inicio_Real']).days + 3
             eixo_gantt.barh(y=y_pos + ESPACAMENTO, width=duracao, left=linha['Inicio_Real'],
-                           height=ALTURA_BARRA, color=StyleConfig.COR_REAL, alpha=0.9,
+                           height=ALTURA_BARRA, color=cor_real, alpha=0.9,
                            antialiased=False)
             datas_relevantes.extend([linha['Inicio_Real'], termino_real])
 
@@ -381,8 +411,33 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
     eixo_gantt.xaxis.set_major_formatter(mdates.DateFormatter('%m/%y'))
     plt.setp(eixo_gantt.get_xticklabels(), rotation=90, ha='center')
 
-    handles_legenda = [Patch(color=StyleConfig.COR_PREVISTO, label='Previsto'), Patch(color=StyleConfig.COR_REAL, label='Real')]
-    eixo_gantt.legend(handles=handles_legenda, loc='upper center', bbox_to_anchor=(1.1, 1), frameon=False, borderaxespad=0.1)
+    # Atualiza a legenda para refletir as cores por fase
+    from matplotlib.legend_handler import HandlerTuple
+
+    # Cria os handles em pares para cada fase
+    # Cria os handles em pares para cada fase
+    handles_legenda = []
+    labels_legenda = []
+
+    for fase in StyleConfig.CORES_POR_FASE:
+        if fase in StyleConfig.CORES_POR_FASE:
+            prev_patch = Patch(color=StyleConfig.CORES_POR_FASE[fase]["previsto"])
+            real_patch = Patch(color=StyleConfig.CORES_POR_FASE[fase]["real"])
+            handles_legenda.append((prev_patch, real_patch))
+            labels_legenda.append(fase)
+
+    # Adiciona a legenda com pares de cores (mantendo posição original)
+    eixo_gantt.legend(
+        handles=handles_legenda,
+        labels=labels_legenda,
+        handler_map={tuple: HandlerTuple(ndivide=None)},
+        loc='upper center',
+        bbox_to_anchor=(1.1, 1),  # Posição original ao lado do gráfico
+        frameon=False,
+        borderaxespad=0.1,
+        fontsize=8,
+        title="Fases (Previsto | Real)"
+    )
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])
     st.pyplot(figura)
@@ -391,7 +446,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
 
 #========================================================================================================
 
-# --- Lógica Principal do App Streamlit (sem alterações) ---
+# --- Lógica Principal do App Streamlit (com alterações) ---
 st.set_page_config(layout="wide", page_title="Dashboard de Gantt Comparativo")
 
 @st.cache_data
@@ -417,11 +472,14 @@ def load_data():
         st.warning("Nenhuma fonte de dados carregada. Usando dados de exemplo.")
         return criar_dados_exemplo()
 
-    # Padronização e Merge
+    # Padronização dos dados
     if not df_real.empty:
         df_real['Etapa'] = df_real['Etapa'].apply(padronizar_etapa)
         df_real.rename(columns={'Emp': 'Empreendimento', 'Iniciar': 'Inicio_Real', 'Terminar': 'Termino_Real'}, inplace=True)
         df_real['% concluído'] = df_real.get('% concluído', pd.Series(0.0)).apply(converter_porcentagem)
+        # Garantir que a coluna FASE existe (se vier do Smartsheet)
+        if 'FASE' not in df_real.columns:
+            df_real['FASE'] = 'Não especificada'
 
     if not df_previsto.empty:
         df_previsto['Etapa'] = df_previsto['Etapa'].apply(padronizar_etapa)
@@ -430,24 +488,48 @@ def load_data():
             index=['UGB', 'Empreendimento', 'Etapa'], columns='Inicio_Fim', values='Data_Prevista', aggfunc='first'
         ).reset_index()
         df_previsto_pivot.rename(columns={'INÍCIO': 'Inicio_Prevista', 'TÉRMINO': 'Termino_Prevista'}, inplace=True)
-    else:
-        df_previsto_pivot = pd.DataFrame(columns=['UGB', 'Empreendimento', 'Etapa', 'Inicio_Prevista', 'Termino_Prevista'])
+        # Garantir que a coluna FASE existe nos dados previstos
+        if 'FASE' not in df_previsto_pivot.columns:
+            df_previsto_pivot['FASE'] = 'Não especificada'
 
-    # Merge final
-    if not df_real.empty:
+    # CORREÇÃO: Merge considerando apenas UGB, Empreendimento e Etapa (não FASE)
+    # Isso garante que dados previstos e reais da mesma etapa apareçam juntos
+    if not df_real.empty and not df_previsto_pivot.empty:
         df_merged = pd.merge(
             df_previsto_pivot,
-            df_real[['UGB', 'Empreendimento', 'Etapa', 'Inicio_Real', 'Termino_Real', '% concluído']],
-            on=['UGB', 'Empreendimento', 'Etapa'],
-            how='outer'
+            df_real[['UGB', 'Empreendimento', 'Etapa', 'Inicio_Real', 'Termino_Real', '% concluído', 'FASE']],
+            on=['UGB', 'Empreendimento', 'Etapa'],  # Removido 'FASE' do merge
+            how='outer',
+            suffixes=('_prev', '_real')
         )
-    else:
+        
+        # Combinar as colunas FASE (priorizando a dos dados reais se disponível)
+        df_merged['FASE'] = df_merged['FASE_real'].combine_first(df_merged['FASE_prev'])
+        df_merged.drop(['FASE_prev', 'FASE_real'], axis=1, inplace=True)
+        
+    elif not df_previsto_pivot.empty:
         df_merged = df_previsto_pivot
-    
-    df_merged['% concluído'] = df_merged.get('% concluído', pd.Series(0.0)).fillna(0)
-    if 'Inicio_Real' not in df_merged: df_merged[['Inicio_Real', 'Termino_Real']] = pd.NaT
+    elif not df_real.empty:
+        df_merged = df_real
+    else:
+        df_merged = pd.DataFrame()
 
+    # Preencher valores faltantes
+    df_merged['% concluído'] = df_merged.get('% concluído', pd.Series(0.0)).fillna(0)
+    if 'Inicio_Real' not in df_merged.columns: 
+        df_merged['Inicio_Real'] = pd.NaT
+    if 'Termino_Real' not in df_merged.columns: 
+        df_merged['Termino_Real'] = pd.NaT
+    if 'Inicio_Prevista' not in df_merged.columns: 
+        df_merged['Inicio_Prevista'] = pd.NaT
+    if 'Termino_Prevista' not in df_merged.columns: 
+        df_merged['Termino_Prevista'] = pd.NaT
+    if 'FASE' not in df_merged.columns: 
+        df_merged['FASE'] = 'Não especificada'
+
+    # Remover linhas sem informações essenciais
     df_merged.dropna(subset=['Empreendimento', 'Etapa'], inplace=True)
+    
     return df_merged
 
 def criar_dados_exemplo():
@@ -455,6 +537,7 @@ def criar_dados_exemplo():
         'UGB': ['UGB1', 'UGB1', 'UGB1', 'UGB2', 'UGB2', 'UGB1'],
         'Empreendimento': ['Residencial Alfa', 'Residencial Alfa', 'Residencial Alfa', 'Condomínio Beta', 'Condomínio Beta', 'Projeto Gama'],
         'Etapa': ['DM', 'DOC', 'ENG', 'DM', 'DOC', 'DM'],
+        'FASE': ['Planejamento', 'Execução', 'Execução', 'Planejamento', 'Execução', 'Planejamento'],
         'Inicio_Prevista': pd.to_datetime(['2024-02-01', '2024-03-01', '2024-04-15', '2024-03-20', '2024-05-01', '2024-01-10']),
         'Termino_Prevista': pd.to_datetime(['2024-02-28', '2024-04-10', '2024-05-30', '2024-04-28', '2024-06-15', '2024-01-31']),
         'Inicio_Real': pd.to_datetime(['2024-02-05', '2024-03-03', pd.NaT, '2024-03-25', '2024-05-05', '2024-01-12']),
@@ -469,7 +552,7 @@ def criar_dados_exemplo():
 if show_welcome_screen():
     st.stop()  # Para a execução do resto do app enquanto o popup está ativo
 
-# CSS customizado
+# CSS customizado (mantido igual)
 st.markdown("""
 <style>
     /* Altera APENAS os checkboxes dos multiselects */
@@ -507,7 +590,7 @@ def get_unique_values(df, column):
     return sorted(df[column].dropna().unique().tolist())
 
 @st.cache_data
-def filter_dataframe(df, ugb_filter, emp_filter):
+def filter_dataframe(df, ugb_filter, emp_filter, fase_filter):
     """Função para cachear filtragem do DataFrame"""
     if not ugb_filter:
         return df.iloc[0:0]  # DataFrame vazio se nenhuma UGB selecionada
@@ -516,6 +599,9 @@ def filter_dataframe(df, ugb_filter, emp_filter):
     
     if emp_filter:
         df_filtered = df_filtered[df_filtered["Empreendimento"].isin(emp_filter)]
+    
+    if fase_filter:
+        df_filtered = df_filtered[df_filtered["FASE"].isin(fase_filter)]
     
     return df_filtered
 
@@ -561,12 +647,33 @@ if df_data is not None and not df_data.empty:
             default_selected=emp_options
         )
         
-        # 3️⃣ Filtro Etapa
-        # Usar função cacheada para filtragem
-        df_filtered = filter_dataframe(df_data, selected_ugb, selected_emp)
+        # 3️⃣ Filtro FASE (NOVO FILTRO - mesmo estilo dos anteriores)
+        # Otimização: só calcular opções de fase se UGB e Empreendimento foram selecionados
+        if selected_ugb:
+            # Primeiro filtra por UGB
+            df_temp = df_data[df_data["UGB"].isin(selected_ugb)]
+            
+            # Depois filtra por Empreendimento se houver seleção
+            if selected_emp:
+                df_temp = df_temp[df_temp["Empreendimento"].isin(selected_emp)]
+            
+            fase_options = get_unique_values(df_temp, "FASE")
+        else:
+            fase_options = []
+            
+        selected_fase = simple_multiselect_dropdown(
+            label="Filtrar por FASE",
+            options=fase_options,
+            key="fase_filter",
+            default_selected=fase_options
+        )
         
-        if not df_filtered.empty:
-            etapas_disponiveis = get_unique_values(df_filtered, "Etapa")
+        # 4️⃣ Filtro Etapa (agora depende também do filtro de FASE)
+        # Aplicar todos os filtros antes de mostrar etapas
+        df_temp_filtered = filter_dataframe(df_data, selected_ugb, selected_emp, selected_fase)
+        
+        if not df_temp_filtered.empty:
+            etapas_disponiveis = get_unique_values(df_temp_filtered, "Etapa")
             
             # Ordenar etapas se sigla_para_nome_completo estiver definido
             try:
@@ -586,9 +693,12 @@ if df_data is not None and not df_data.empty:
             options=etapas_para_exibir
         )
 
-        # 4️⃣ Opção de visualização
+        # 5️⃣ Opção de visualização
         tipo_visualizacao = st.radio("Mostrar dados:", ("Ambos", "Previsto", "Real"))
 
+    # Aplica todos os filtros finais
+    df_filtered = filter_dataframe(df_data, selected_ugb, selected_emp, selected_fase)
+    
     # Aplica o filtro de etapa final
     if selected_etapa_nome != "Todos" and not df_filtered.empty:
         try:
@@ -598,10 +708,10 @@ if df_data is not None and not df_data.empty:
             # Se nome_completo_para_sigla não estiver definido, usar o nome como está
             df_filtered = df_filtered[df_filtered["Etapa"] == selected_etapa_nome]
 
+    # Resto do código mantido igual...
     # Abas principais
     tab1, tab2 = st.tabs(["📈 Gráfico de Gantt – Previsto vs Real", "💾 Tabelão Horizontal"])
-
-
+    
 #========================================================================================================
 
     with tab1:
