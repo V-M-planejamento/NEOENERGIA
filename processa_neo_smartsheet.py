@@ -4,6 +4,8 @@ import os
 from dotenv import load_dotenv
 import sys
 from datetime import datetime
+import numpy as np
+import re
 
 # Configurações
 SHEET_NAME = "ACOMPANHAMENTOS NEOERNERGIA"
@@ -51,6 +53,11 @@ def get_sheet_id(client, sheet_name):
                 return sheet.id
         
         print(f"\nERRO: Planilha '{sheet_name}' não encontrada")
+        print("Planilhas disponíveis:")
+        for sheet in response.data[:5]:  # Mostra as primeiras 5 planilhas
+            print(f" - {sheet.name} (ID: {sheet.id})")
+        if len(response.data) > 5:
+            print(f" - ... e mais {len(response.data) - 5} planilhas")
         return None
         
     except smartsheet.exceptions.ApiError as api_error:
@@ -64,20 +71,29 @@ def get_sheet_data(client, sheet_id):
     """Obtém os dados da planilha"""
     try:
         print("\nObtendo dados da planilha...")
-        sheet = client.Sheets.get_sheet(sheet_id)
+        # Incluir mais parâmetros para melhor performance
+        sheet = client.Sheets.get_sheet(
+            sheet_id,
+            include=['format', 'discussions', 'attachments', 'columnType'],
+            page_size=5000
+        )
         
-        # Converter para DataFrame
+        # Converter para DataFrame de forma mais eficiente
+        column_map = {}
+        for column in sheet.columns:
+            column_map[column.id] = column.title
+        
         rows = []
         for row in sheet.rows:
             row_data = {}
             for cell in row.cells:
-                column_name = next((col.title for col in sheet.columns if col.id == cell.column_id), None)
-                if column_name:
+                if cell.column_id in column_map:
+                    column_name = column_map[cell.column_id]
                     row_data[column_name] = cell.value
             rows.append(row_data)
         
         df = pd.DataFrame(rows)
-        print(f"✅ Dados obtidos ({len(df)} linhas)")
+        print(f"✅ Dados obtidos ({len(df)} linhas, {len(df.columns)} colunas)")
         return df
     
     except Exception as e:
@@ -91,11 +107,18 @@ def process_data(df):
         return df
 
     try:
-        # 1. Remover primeiras 915 linhas (equivalente a Table.Skip)
-        print("📉 Removendo primeiras 915 linhas...")
-        df = df.iloc[915:].reset_index(drop=True)
+        original_rows = len(df)
+        print(f"📊 Iniciando processamento de {original_rows} linhas...")
         
-        # 2. Remover colunas específicas (equivalente a Table.RemoveColumns)
+        # 1. Verificar se precisamos realmente remover as primeiras 915 linhas
+        if len(df) > 915:
+            print("📉 Removendo primeiras 915 linhas...")
+            df = df.iloc[915:].reset_index(drop=True)
+            print(f"   → {len(df)} linhas restantes")
+        else:
+            print("⚠️  Aviso: Planilha tem menos de 915 linhas, pulando esta etapa")
+        
+        # 2. Remover colunas específicas
         colunas_remover = [
             "RowNumber", "CATEGORIA", "Destaque", "Atualizar", 
             "Antecessores", "Duração", "Variação (LB-Termino)", 
@@ -103,18 +126,88 @@ def process_data(df):
         ]
         
         print("🗑️ Removendo colunas desnecessárias...")
-        df = df.drop(columns=[col for col in colunas_remover if col in df.columns], errors='ignore')
+        colunas_existentes = [col for col in colunas_remover if col in df.columns]
+        df = df.drop(columns=colunas_existentes, errors='ignore')
+        print(f"   → Colunas restantes: {list(df.columns)}")
         
-        # 3. Converter tipos de dados (equivalente a Table.TransformColumnTypes)
-        print("🔄 Convertendo tipos de dados...")
-        
-        # Converter datas
-        for col in ["Terminar", "Iniciar"]:
+        # 3. Converter colunas de texto primeiro
+        print("🔄 Convertendo colunas de texto...")
+        text_columns = ["SERVIÇO", "FASE", "EMP", "UGB", "Nome da tarefa", "Empreendimento"]
+        for col in text_columns:
             if col in df.columns:
-                df[col] = pd.to_datetime(df[col], errors='coerce')
+                df[col] = df[col].astype(str)
+                df[col] = df[col].replace(['nan', 'None', 'NONE', 'none', 'NaN', 'NaT'], np.nan)
+                df[col] = df[col].str.strip()
         
-        # Converter porcentagem
+        # 4. DEBUG CRÍTICO: Mostrar análise completa da coluna Empreendimento
+        if "Empreendimento" in df.columns:
+            print("\n" + "="*80)
+            print("ANÁLISE COMPLETA DA COLUNA 'EMPREENDIMENTO'")
+            print("="*80)
+            
+            # Mostrar todos os valores únicos
+            unique_vals = df["Empreendimento"].unique()
+            print(f"Valores únicos encontrados ({len(unique_vals)}):")
+            for i, val in enumerate(unique_vals):
+                print(f"  {i+1:3d}. '{val}'")
+            
+            # Mostrar distribuição
+            print(f"\nDistribuição dos valores:")
+            value_counts = df["Empreendimento"].value_counts()
+            for valor, count in value_counts.items():
+                print(f"  '{valor}': {count} linhas")
+        
+        # 5. FILTRAGEM SUPER AGRESSIVA - REMOVER TUDO QUE PARECER COM OS VALORES INDESEJADOS
+        if "Empreendimento" in df.columns:
+            print("\n" + "="*80)
+            print("INICIANDO FILTRAGEM SUPER AGRESSIVA")
+            print("="*80)
+            
+            antes = len(df)
+            
+            # Lista de padrões a serem removidos (case insensitive)
+            padroes_remover = [
+                r'none', r'base', r'j\.ser.*2', r'lar.*f1', r'sviii.*f2', 
+                r'qdr\.g', r'ba.*4f1', r'^$', r'^\s*$'
+            ]
+            
+            # Criar máscara para remoção
+            mask = pd.Series(False, index=df.index)
+            
+            for padrao in padroes_remover:
+                try:
+                    # Buscar por regex case insensitive
+                    mask = mask | df["Empreendimento"].str.contains(padrao, case=False, na=False, regex=True)
+                except:
+                    continue
+            
+            # Também remover valores nulos
+            mask = mask | df["Empreendimento"].isna()
+            
+            # Mostrar o que será removido
+            if mask.any():
+                print("VALORES QUE SERÃO REMOVIDOS:")
+                removidos_df = df[mask]
+                for valor, count in removidos_df["Empreendimento"].value_counts().items():
+                    print(f"  - '{valor}': {count} linhas")
+            
+            # Aplicar filtro (manter apenas os que NÃO estão na máscara)
+            df = df[~mask]
+            
+            print(f"\nRESULTADO DA FILTRAGEM:")
+            print(f"  Linhas antes: {antes}")
+            print(f"  Linhas removidas: {antes - len(df)}")
+            print(f"  Linhas restantes: {len(df)}")
+        
+        # 6. Converter outros tipos de dados
+        date_columns = ["Terminar", "Iniciar"]
+        for col in date_columns:
+            if col in df.columns:
+                print(f"   → Convertendo {col} para data")
+                df[col] = pd.to_datetime(df[col], errors='coerce', dayfirst=True)
+        
         if "% concluído" in df.columns:
+            print("   → Convertendo % concluído para numérico")
             df["% concluído"] = (
                 pd.to_numeric(
                     df["% concluído"].astype(str)
@@ -124,18 +217,23 @@ def process_data(df):
                 ) / 100
             ).fillna(0)
         
-        # Converter colunas de texto
-        text_columns = ["SERVIÇO", "FASE", "EMP", "UGB", "Nome da tarefa"]
-        for col in text_columns:
-            if col in df.columns:
-                df[col] = df[col].astype(str)
-        
-        # 4. Filtrar linhas onde FASE não é nula (equivalente a Table.SelectRows)
-        print("🔍 Filtrando linhas com FASE não nula...")
+        # 7. Filtrar linhas onde FASE não é nula
         if "FASE" in df.columns:
-            df = df[df["FASE"].notna() & (df["FASE"] != "None") & (df["FASE"] != "nan")]
+            print("🔍 Filtrando linhas com FASE não nula...")
+            antes = len(df)
+            df = df[df["FASE"].notna() & (df["FASE"] != "None")]
+            print(f"   → Removidas {antes - len(df)} linhas com FASE nula")
         
-        print("✅ Dados processados com sucesso")
+        # 8. Mostrar resultado final
+        if "Empreendimento" in df.columns:
+            print("\n" + "="*80)
+            print("RESULTADO FINAL - EMPREENDIMENTOS RESTANTES")
+            print("="*80)
+            final_values = df["Empreendimento"].value_counts()
+            for valor, count in final_values.items():
+                print(f"  '{valor}': {count} linhas")
+        
+        print(f"✅ Dados processados com sucesso: {len(df)}/{original_rows} linhas mantidas")
         return df
 
     except Exception as e:
@@ -150,19 +248,25 @@ def salvar_resultados(df):
         df.to_csv(OUTPUT_CSV, index=False, encoding='utf-8-sig')
         print(f"\n💾 Arquivo salvo com sucesso: {OUTPUT_CSV}")
         print(f"📊 Total de linhas: {len(df)}")
+        
+        # Mostrar estatísticas dos empreendimentos no arquivo final
+        if "Empreendimento" in df.columns:
+            print("\n📊 DISTRIBUIÇÃO FINAL DOS EMPREENDIMENTOS:")
+            dist_empreendimentos = df["Empreendimento"].value_counts()
+            for empreendimento, count in dist_empreendimentos.items():
+                print(f"   - '{empreendimento}': {count} linhas")
+        
         print("\n📋 Visualização dos dados:")
-        print(df.head())
-        print("\n📝 Colunas disponíveis:")
-        print(df.columns.tolist())
+        print(df.head(10))
         return True
     except Exception as e:
         print(f"\n❌ ERRO AO SALVAR: {str(e)}")
         return False
 
 def main():
-    print("\n" + "="*50)
-    print(" INÍCIO DO PROCESSAMENTO ".center(50, "="))
-    print("="*50)
+    print("\n" + "="*60)
+    print(" INÍCIO DO PROCESSAMENTO ".center(60, "="))
+    print("="*60)
 
     # 1. Carregar configurações
     token = carregar_configuracao()
@@ -182,16 +286,22 @@ def main():
     # 4. Obter dados
     raw_data = get_sheet_data(client, sheet_id)
     if raw_data.empty:
+        print("❌ Nenhum dado obtido da planilha")
         sys.exit(1)
 
     # 5. Processar dados (adaptação do DAX)
     processed_data = process_data(raw_data)
     if processed_data.empty:
+        print("❌ Nenhum dado restante após processamento")
         sys.exit(1)
 
     # 6. Salvar resultados
     if not salvar_resultados(processed_data):
         sys.exit(1)
+
+    print("\n" + "="*60)
+    print(" PROCESSAMENTO CONCLUÍDO ".center(60, "="))
+    print("="*60)
 
 if __name__ == "__main__":
     main()
