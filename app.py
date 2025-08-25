@@ -45,12 +45,12 @@ class StyleConfig:
     
     # Cores por fase (para barras previstas e reais)
     CORES_POR_FASE = {
-        "ENG.PROD": {"previsto": "#ffe1af", "real": "#ec9c00"},
-        "INFRA": {"previsto": "#b9ddfc", "real": "#45A6F8"},
-        "LEG.": {"previsto": "#ebc7ef", "real": "#A93BB6"},
-        "ORÇ.": {"previsto": "#daac55", "real": "#946305"},
-        "PROD.": {"previsto": "#bdbdbd", "real": "#4d4d4d"},
-        "SUP.": {"previsto": "#c6e7c8", "real": "#2c8532"}
+        "ENG.PROD": {"previsto": "#ffe1af", "real": "#be5900"},
+        "INFRA": {"previsto": "#b9ddfc", "real": "#003C6C"},
+        "LEG.": {"previsto": "#ebc7ef", "real": "#63006E"},
+        "ORÇ.": {"previsto": "#f8cd7c", "real": "#6C3F00"},
+        "PROD.": {"previsto": "#bdbdbd", "real": "#3a3a3a"},
+        "SUP.": {"previsto": "#c6e7c8", "real": "#014606"}
     }
 
 # --- MAPA DE FASE PARA ETAPAS ---
