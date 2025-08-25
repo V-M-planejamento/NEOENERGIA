@@ -28,7 +28,7 @@ class StyleConfig:
     LARGURA_GANTT = 10
     ALTURA_GANTT_POR_ITEM = 1.2
     ALTURA_BARRA_GANTT = 0.35
-    LARGURA_TABELA = 5
+    LARGURA_TABELA = 5.3
     COR_HOJE = 'red'
     COR_CONCLUIDO = '#047031'
     COR_ATRASADO = '#a83232'
@@ -162,7 +162,7 @@ sigla_para_nome_completo = {
     "EXECUÇÃO-ER":   "EXECUÇÃO ER",
     "EXECUÇÃO-IP":   "EXECUÇÃO IP",
     "INCORPORAÇÃO":  "INCORPORAÇÃO",
-    "PINT-BAR":     "PINTURA DOS BARRAMENTOS",
+    "PINT-BAR":     "PINTURA DE BARRAMENTOS",
     "COMISSIONAMENTO": "COMISSIONAMENTO",
     "LIG-IP":        "LIGAÇÃO DA IP",
     "CARTA":         "CARTA DE ENTREGA ER",
@@ -433,7 +433,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         frameon=False,
         borderaxespad=0.1,
         fontsize=8,
-        title="Fases (Previsto | Real)"
+        title=" Fases (Previsto | Real)"
     )
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])

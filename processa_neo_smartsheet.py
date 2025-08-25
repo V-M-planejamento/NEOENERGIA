@@ -54,7 +54,7 @@ def get_sheet_id(client, sheet_name):
         
         print(f"\nERRO: Planilha '{sheet_name}' não encontrada")
         print("Planilhas disponíveis:")
-        for sheet in response.data[:5]:  # Mostra as primeiras 5 planilhas
+        for sheet in response.data[:5]:
             print(f" - {sheet.name} (ID: {sheet.id})")
         if len(response.data) > 5:
             print(f" - ... e mais {len(response.data) - 5} planilhas")
@@ -71,17 +71,13 @@ def get_sheet_data(client, sheet_id):
     """Obtém os dados da planilha"""
     try:
         print("\nObtendo dados da planilha...")
-        # Incluir mais parâmetros para melhor performance
         sheet = client.Sheets.get_sheet(
             sheet_id,
             include=['format', 'discussions', 'attachments', 'columnType'],
             page_size=5000
         )
         
-        # Converter para DataFrame de forma mais eficiente
-        column_map = {}
-        for column in sheet.columns:
-            column_map[column.id] = column.title
+        column_map = {column.id: column.title for column in sheet.columns}
         
         rows = []
         for row in sheet.rows:
@@ -94,150 +90,200 @@ def get_sheet_data(client, sheet_id):
         
         df = pd.DataFrame(rows)
         print(f"✅ Dados obtidos ({len(df)} linhas, {len(df.columns)} colunas)")
+        
+        # Verificação inicial dos dados
+        print("\n🔍 VERIFICAÇÃO INICIAL DOS DADOS:")
+        print(f"Valores únicos na coluna 'Empreendimento': {df['Empreendimento'].nunique() if 'Empreendimento' in df.columns else 'Coluna não encontrada'}")
+        
+        if 'FASE' in df.columns:
+            print(f"Valores únicos na coluna 'FASE': {df['FASE'].nunique()}")
+            print("Top 10 valores em 'FASE':")
+            print(df['FASE'].value_counts().head(10))
+        
         return df
     
     except Exception as e:
         print(f"\n❌ Falha ao obter dados: {str(e)}")
         return pd.DataFrame()
 
-def process_data(df):
-    """Processa e limpa os dados - Adaptado do DAX"""
+def filtrar_linhas_invalidas(df):
+    """
+    Filtra linhas que contêm valores 'UNKNOWN' ou outros padrões inválidos
+    em colunas críticas como Empreendimento, FASE, SERVIÇO, etc.
+    """
+    print("\n🚫 FILTRANDO LINHAS COM VALORES INVÁLIDOS...")
+    
+    linhas_antes = len(df)
+    
     if df.empty:
-        print("⚠️ Aviso: Nenhum dado recebido para processamento")
+        print("⚠️ Nenhum dado para filtrar")
+        return df
+    
+    # Padrões de valores inválidos para remover (mais abrangente)
+    padroes_invalidos = [
+        r'^unknown$', r'^none$', r'^nan$', r'^nat$', r'^\s*$',
+        r'base', r'teste', r'exemplo', r'^$',
+        r'j\.ser.*2', r'lar.*f1', r'sviii.*f2', r'qdr\.g', r'ba.*4f1'
+    ]
+    
+    # Colunas críticas para verificar
+    colunas_criticas = ['Empreendimento', 'FASE', 'SERVIÇO', 'Nome da tarefa', 'EMP', 'UGB']
+    colunas_existentes = [col for col in colunas_criticas if col in df.columns]
+    
+    print(f"Colunas críticas para verificação: {colunas_existentes}")
+    
+    if not colunas_existentes:
+        print("⚠️ Nenhuma coluna crítica encontrada para verificação")
+        return df
+    
+    # Criar máscara para identificar linhas a serem removidas
+    mascara_remover = pd.Series([False] * len(df), index=df.index)
+    
+    for coluna in colunas_existentes:
+        if coluna in df.columns:
+            # Converter para string para verificação segura e em minúsculas
+            coluna_str = df[coluna].astype(str).str.strip().str.lower()
+            
+            # Verificar valores nulos ou vazios primeiro
+            mascara_nulos = coluna_str.isna() | (coluna_str == '') | (coluna_str == 'nan')
+            
+            # Criar máscara para valores inválidos nesta coluna
+            mascara_invalida_coluna = mascara_nulos.copy()
+            for padrao in padroes_invalidos:
+                mascara_invalida_coluna = mascara_invalida_coluna | coluna_str.str.contains(padrao, regex=True, na=True)
+            
+            # Verificar explicitamente por "unknown" (case insensitive)
+            mascara_unknown = coluna_str.str.contains('unknown', case=False, na=True)
+            mascara_invalida_coluna = mascara_invalida_coluna | mascara_unknown
+            
+            # Contar inválidos
+            invalidos_count = mascara_invalida_coluna.sum()
+            if invalidos_count > 0:
+                print(f"   → Coluna '{coluna}': {invalidos_count} valores inválidos encontrados")
+                # Mostrar exemplos dos valores problemáticos
+                valores_problematicos = df.loc[mascara_invalida_coluna, coluna].unique()[:5]
+                print(f"      Valores problemáticos: {valores_problematicos}")
+            
+            # Atualizar máscara geral (remove a linha se QUALQUER coluna crítica for inválida)
+            mascara_remover = mascara_remover | mascara_invalida_coluna
+    
+    # Aplicar filtro para manter apenas as linhas que NÃO estão na máscara de remoção
+    df_filtrado = df[~mascara_remover].copy()
+    
+    linhas_removidas = linhas_antes - len(df_filtrado)
+    print(f"   → Linhas removidas: {linhas_removidas}")
+    print(f"   → Linhas restantes: {len(df_filtrado)}")
+    
+    return df_filtrado
+
+def process_data(df):
+    """Processa e limpa os dados com foco em remover valores 'UNKNOWN'"""
+    if df.empty:
+        print("⚠️ Aviso: Nenhum dado recebido para processamento.")
         return df
 
     try:
         original_rows = len(df)
         print(f"📊 Iniciando processamento de {original_rows} linhas...")
-        
-        # 1. Verificar se precisamos realmente remover as primeiras 915 linhas
+
+        # 1. Remover as primeiras 915 linhas (se aplicável)
         if len(df) > 915:
             print("📉 Removendo primeiras 915 linhas...")
             df = df.iloc[915:].reset_index(drop=True)
-            print(f"   → {len(df)} linhas restantes")
+            print(f"   → Linhas após remoção: {len(df)}")
         else:
-            print("⚠️  Aviso: Planilha tem menos de 915 linhas, pulando esta etapa")
+            print("⚠️ Aviso: Planilha tem menos de 915 linhas, pulando esta etapa.")
+
+        # 2. FILTRAGEM PRINCIPAL - Remover linhas com valores 'UNKNOWN' e outros inválidos
+        df = filtrar_linhas_invalidas(df)
         
-        # 2. Remover colunas específicas
+        if df.empty:
+            print("❌ Todas as linhas foram removidas durante a filtragem!")
+            return df
+
+        # 3. Remover colunas desnecessárias
         colunas_remover = [
-            "RowNumber", "CATEGORIA", "Destaque", "Atualizar", 
-            "Antecessores", "Duração", "Variação (LB-Termino)", 
-            "Início LB", "Término LB", "Dur LB", "Atribuído a", "PRAZO CARTAS"
+            "RowNumber", "CATEGORIA", "Destaque", "Atualizar", "Antecessores", 
+            "Duração", "Variação (LB-Termino)", "Início LB", "Término LB", 
+            "Dur LB", "Atribuído a", "PRAZO CARTAS"
         ]
-        
-        print("🗑️ Removendo colunas desnecessárias...")
         colunas_existentes = [col for col in colunas_remover if col in df.columns]
-        df = df.drop(columns=colunas_existentes, errors='ignore')
-        print(f"   → Colunas restantes: {list(df.columns)}")
+        if colunas_existentes:
+            df = df.drop(columns=colunas_existentes, errors='ignore')
+            print(f"🗑️ Colunas removidas: {colunas_existentes}")
+
+        # 4. Limpeza adicional de valores nulos
+        print("\n🧹 Limpeza final de valores nulos...")
+        colunas_para_verificar = ['Empreendimento', 'FASE', 'SERVIÇO']
+        colunas_existentes = [col for col in colunas_para_verificar if col in df.columns]
         
-        # 3. Converter colunas de texto primeiro
-        print("🔄 Convertendo colunas de texto...")
-        text_columns = ["SERVIÇO", "FASE", "EMP", "UGB", "Nome da tarefa", "Empreendimento"]
-        for col in text_columns:
-            if col in df.columns:
-                df[col] = df[col].astype(str)
-                df[col] = df[col].replace(['nan', 'None', 'NONE', 'none', 'NaN', 'NaT'], np.nan)
-                df[col] = df[col].str.strip()
-        
-        # 4. DEBUG CRÍTICO: Mostrar análise completa da coluna Empreendimento
-        if "Empreendimento" in df.columns:
-            print("\n" + "="*80)
-            print("ANÁLISE COMPLETA DA COLUNA 'EMPREENDIMENTO'")
-            print("="*80)
-            
-            # Mostrar todos os valores únicos
-            unique_vals = df["Empreendimento"].unique()
-            print(f"Valores únicos encontrados ({len(unique_vals)}):")
-            for i, val in enumerate(unique_vals):
-                print(f"  {i+1:3d}. '{val}'")
-            
-            # Mostrar distribuição
-            print(f"\nDistribuição dos valores:")
-            value_counts = df["Empreendimento"].value_counts()
-            for valor, count in value_counts.items():
-                print(f"  '{valor}': {count} linhas")
-        
-        # 5. FILTRAGEM SUPER AGRESSIVA - REMOVER TUDO QUE PARECER COM OS VALORES INDESEJADOS
-        if "Empreendimento" in df.columns:
-            print("\n" + "="*80)
-            print("INICIANDO FILTRAGEM SUPER AGRESSIVA")
-            print("="*80)
-            
-            antes = len(df)
-            
-            # Lista de padrões a serem removidos (case insensitive)
-            padroes_remover = [
-                r'none', r'base', r'j\.ser.*2', r'lar.*f1', r'sviii.*f2', 
-                r'qdr\.g', r'ba.*4f1', r'^$', r'^\s*$'
-            ]
-            
-            # Criar máscara para remoção
-            mask = pd.Series(False, index=df.index)
-            
-            for padrao in padroes_remover:
-                try:
-                    # Buscar por regex case insensitive
-                    mask = mask | df["Empreendimento"].str.contains(padrao, case=False, na=False, regex=True)
-                except:
-                    continue
-            
-            # Também remover valores nulos
-            mask = mask | df["Empreendimento"].isna()
-            
-            # Mostrar o que será removido
-            if mask.any():
-                print("VALORES QUE SERÃO REMOVIDOS:")
-                removidos_df = df[mask]
-                for valor, count in removidos_df["Empreendimento"].value_counts().items():
-                    print(f"  - '{valor}': {count} linhas")
-            
-            # Aplicar filtro (manter apenas os que NÃO estão na máscara)
-            df = df[~mask]
-            
-            print(f"\nRESULTADO DA FILTRAGEM:")
-            print(f"  Linhas antes: {antes}")
-            print(f"  Linhas removidas: {antes - len(df)}")
-            print(f"  Linhas restantes: {len(df)}")
-        
-        # 6. Converter outros tipos de dados
+        if colunas_existentes:
+            linhas_antes = len(df)
+            df = df.dropna(subset=colunas_existentes, how='all')
+            removidas = linhas_antes - len(df)
+            if removidas > 0:
+                print(f"   → {removidas} linhas removidas por valores nulos em colunas críticas")
+
+        # 5. Converter tipos de dados
+        print("\n🔄 Convertendo tipos de dados...")
         date_columns = ["Terminar", "Iniciar"]
         for col in date_columns:
             if col in df.columns:
-                print(f"   → Convertendo {col} para data")
                 df[col] = pd.to_datetime(df[col], errors='coerce', dayfirst=True)
-        
+
         if "% concluído" in df.columns:
-            print("   → Convertendo % concluído para numérico")
-            df["% concluído"] = (
-                pd.to_numeric(
-                    df["% concluído"].astype(str)
-                    .str.replace('%', '')
-                    .str.replace(',', '.'), 
-                    errors='coerce'
-                ) / 100
-            ).fillna(0)
+            df["% concluído"] = pd.to_numeric(
+                df["% concluído"].astype(str).str.replace('%', '').str.replace(',', '.'), 
+                errors='coerce'
+            ) / 100
+            df["% concluído"].fillna(0, inplace=True)
+
+        # 6. VERIFICAÇÃO FINAL - Garantir que não há mais 'UNKNOWN'
+        print("\n🔍 VERIFICAÇÃO FINAL - VALORES 'UNKNOWN':")
+        colunas_para_verificar = ['Empreendimento', 'FASE', 'SERVIÇO', 'Nome da tarefa']
         
-        # 7. Filtrar linhas onde FASE não é nula
-        if "FASE" in df.columns:
-            print("🔍 Filtrando linhas com FASE não nula...")
-            antes = len(df)
-            df = df[df["FASE"].notna() & (df["FASE"] != "None")]
-            print(f"   → Removidas {antes - len(df)} linhas com FASE nula")
+        unknown_total = 0
+        for coluna in colunas_para_verificar:
+            if coluna in df.columns:
+                # Verificação mais robusta para unknown
+                unknown_mask = (
+                    df[coluna].astype(str).str.strip().str.lower()
+                    .str.contains('unknown', case=False, na=False)
+                )
+                unknown_count = unknown_mask.sum()
+                unknown_total += unknown_count
+                
+                print(f"   → Coluna '{coluna}': {unknown_count} valores 'unknown' encontrados")
+                
+                if unknown_count > 0:
+                    # Mostrar exemplos dos valores problemáticos
+                    problematicos = df[unknown_mask]
+                    print(f"      Exemplos: {problematicos[coluna].unique()[:3]}")
         
-        # 8. Mostrar resultado final
+        if unknown_total > 0:
+            print(f"⚠️  ATENÇÃO: Ainda existem {unknown_total} valores 'unknown' no dataset!")
+        else:
+            print("✅ Nenhum valor 'unknown' encontrado na verificação final!")
+
+        # 7. Análise dos dados resultantes
+        print(f"\n✅ PROCESSAMENTO CONCLUÍDO: {len(df)}/{original_rows} linhas mantidas.")
+        
         if "Empreendimento" in df.columns:
-            print("\n" + "="*80)
-            print("RESULTADO FINAL - EMPREENDIMENTOS RESTANTES")
-            print("="*80)
-            final_values = df["Empreendimento"].value_counts()
-            for valor, count in final_values.items():
-                print(f"  '{valor}': {count} linhas")
+            print("\n📊 DISTRIBUIÇÃO DOS EMPREENDIMENTOS:")
+            dist = df["Empreendimento"].value_counts()
+            for emp, count in dist.items():
+                print(f"   - '{emp}': {count} linhas")
         
-        print(f"✅ Dados processados com sucesso: {len(df)}/{original_rows} linhas mantidas")
+        if "FASE" in df.columns:
+            print("\n📊 DISTRIBUIÇÃO DAS FASES:")
+            dist = df["FASE"].value_counts()
+            for fase, count in dist.items():
+                print(f"   - '{fase}': {count} linhas")
+
         return df
 
     except Exception as e:
-        print(f"\n❌ ERRO NO PROCESSAMENTO: {str(e)}")
+        print(f"\n❌ ERRO CRÍTICO NO PROCESSAMENTO: {str(e)}")
         import traceback
         traceback.print_exc()
         return pd.DataFrame()
@@ -249,15 +295,20 @@ def salvar_resultados(df):
         print(f"\n💾 Arquivo salvo com sucesso: {OUTPUT_CSV}")
         print(f"📊 Total de linhas: {len(df)}")
         
-        # Mostrar estatísticas dos empreendimentos no arquivo final
-        if "Empreendimento" in df.columns:
-            print("\n📊 DISTRIBUIÇÃO FINAL DOS EMPREENDIMENTOS:")
-            dist_empreendimentos = df["Empreendimento"].value_counts()
-            for empreendimento, count in dist_empreendimentos.items():
-                print(f"   - '{empreendimento}': {count} linhas")
+        # Verificação final no arquivo salvo
+        if os.path.exists(OUTPUT_CSV):
+            df_verificacao = pd.read_csv(OUTPUT_CSV, nrows=5)
+            print("\n📋 PRIMEIRAS LINHAS DO ARQUIVO SALVO:")
+            print(df_verificacao.to_string(index=False))
+            
+            # Verificar se há UNKNOWN no arquivo salvo
+            with open(OUTPUT_CSV, 'r', encoding='utf-8') as f:
+                content = f.read()
+                if 'unknown' in content.lower():
+                    print("⚠️  ATENÇÃO: Ainda existem valores 'unknown' no arquivo CSV!")
+                else:
+                    print("✅ Nenhum valor 'unknown' encontrado no arquivo CSV!")
         
-        print("\n📋 Visualização dos dados:")
-        print(df.head(10))
         return True
     except Exception as e:
         print(f"\n❌ ERRO AO SALVAR: {str(e)}")
@@ -268,34 +319,28 @@ def main():
     print(" INÍCIO DO PROCESSAMENTO ".center(60, "="))
     print("="*60)
 
-    # 1. Carregar configurações
     token = carregar_configuracao()
     if not token:
         sys.exit(1)
 
-    # 2. Configurar cliente Smartsheet
     client = setup_smartsheet_client(token)
     if not client:
         sys.exit(1)
 
-    # 3. Obter ID da planilha
     sheet_id = get_sheet_id(client, SHEET_NAME)
     if not sheet_id:
         sys.exit(1)
 
-    # 4. Obter dados
     raw_data = get_sheet_data(client, sheet_id)
     if raw_data.empty:
         print("❌ Nenhum dado obtido da planilha")
         sys.exit(1)
 
-    # 5. Processar dados (adaptação do DAX)
     processed_data = process_data(raw_data)
     if processed_data.empty:
         print("❌ Nenhum dado restante após processamento")
         sys.exit(1)
 
-    # 6. Salvar resultados
     if not salvar_resultados(processed_data):
         sys.exit(1)
 
