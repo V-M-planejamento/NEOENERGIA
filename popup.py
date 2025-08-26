@@ -13,7 +13,7 @@ def show_welcome_screen():
     if st.session_state.show_popup:
         
         def load_svg_as_base64():
-            svg_path = '31123505_7769742.psd(10).svg'
+            svg_path = 'Component 2.svg'
             if os.path.exists(svg_path):
                 try:
                     with open(svg_path, 'rb') as f:
@@ -29,7 +29,7 @@ def show_welcome_screen():
         button_html = f"""
         <div class="button-wrapper">
             <a href="?close_popup=true" target="_self" class="popup-button">
-                🚀 Acessar Painel
+                Acessar Painel
             </a>
         </div>
         """
