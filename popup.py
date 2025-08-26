@@ -4,70 +4,50 @@ import os
 
 def show_welcome_screen():
     """
-    Função que exibe um popup em tela cheia usando o SVG como fundo.
-    Remove completamente o card/quadrado e o título, mantendo apenas o SVG e o botão.
-    Posiciona o botão no canto inferior direito da tela.
+    Função que exibe um popup em tela cheia com botão 100% responsivo e corretamente posicionado.
     """
     
-    # Inicializar o estado do popup se não existir
     if 'show_popup' not in st.session_state:
         st.session_state.show_popup = True
     
-    # Se o popup deve ser exibido
     if st.session_state.show_popup:
         
-        # Função para carregar e codificar o SVG
         def load_svg_as_base64():
-            possible_paths = [
-                '31123505_7769742.psd(10).svg',
-                './31123505_7769742.psd(10).svg',
-                '/home/ubuntu/31123505_7769742.psd(10).svg',
-                '/home/ubuntu/upload/31123505_7769742.psd(10).svg',
-                os.path.join(os.path.dirname(__file__), '31123505_7769742.psd(10).svg')
-            ]
-            
-            for svg_path in possible_paths:
-                if os.path.exists(svg_path):
-                    try:
-                        with open(svg_path, 'rb') as svg_file:
-                            svg_content = svg_file.read()
-                            return base64.b64encode(svg_content).decode('utf-8')
-                    except Exception as e:
-                        continue
+            svg_path = '31123505_7769742.psd(10).svg'
+            if os.path.exists(svg_path):
+                try:
+                    with open(svg_path, 'rb') as f:
+                        return base64.b64encode(f.read()).decode('utf-8')
+                except Exception:
+                    return ""
             return ""
         
         svg_base64 = load_svg_as_base64()
         
-        # CSS com as animações
+        # Injetamos o botão diretamente no HTML para controle total.
+        # A mágica acontece aqui: criamos um contêiner flexível que ocupa a tela toda.
+        button_html = f"""
+        <div class="button-wrapper">
+            <a href="?close_popup=true" target="_self" class="popup-button">
+                🚀 Acessar Painel
+            </a>
+        </div>
+        """
+
         popup_css = f"""
         <style>
-        html, body, .stApp {{
-            margin: 0 !important;
-            padding: 0 !important;
-            height: 100vh !important;
-            overflow: hidden !important;
+        /* Oculta a interface principal do Streamlit */
+        .main > div:first-child {{
+            display: none;
         }}
-        
-        .main .block-container,
-        header,
-        .stApp > div:first-child,
-        .stApp > header,
-        .stDeployButton,
-        .stDecoration,
-        .stToolbar {{
+        header, .stToolbar, .stDeployButton {{
             display: none !important;
         }}
         
-        @keyframes fadeIn {{
-            from {{ opacity: 0; transform: scale(0.95); }}
-            to {{ opacity: 1; transform: scale(1); }}
-        }}
+        /* Animações */
+        @keyframes fadeIn {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
         
-        @keyframes fadeOut {{
-            from {{ opacity: 0; transform: scale(0.85); }}
-            to {{ opacity: 0; transform: scale(0.95); }}
-        }}
-        
+        /* Overlay de fundo */
         .popup-overlay {{
             position: fixed;
             top: 0;
@@ -77,135 +57,106 @@ def show_welcome_screen():
             {f"background-image: url('data:image/svg+xml;base64,{svg_base64}');" if svg_base64 else "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"}
             background-size: cover;
             background-position: center;
-            background-repeat: no-repeat;
             z-index: 9998;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
-            object-fit: contain;
             animation: fadeIn 0.5s ease-out forwards;
         }}
         
-        .popup-exit {{
-            animation: fadeOut 0.5s ease-in forwards !important;
-        }}
-        
-        .popup-overlay::before {{
-            content: '';
-            display: block;
-            position: absolute;
+        /* --- ABORDAGEM FINAL COM CONTÊINER FLEXÍVEL --- */
+
+        /* 1. O contêiner que envolve o botão */
+        .button-wrapper {{
+            position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: inherit;
-            z-index: -1;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10001;
+            
+            /* Mágica do Flexbox para posicionamento */
+            display: flex;
+            justify-content: flex-end;  /* Alinha horizontalmente à direita */
+            align-items: flex-end;    /* Alinha verticalmente na base */
+            
+            /* Espaçamento das bordas */
+            padding: 5vh 5vw;
+            box-sizing: border-box; /* Garante que o padding não estoure o tamanho */
         }}
-        
-        .stButton > button {{
+
+        /* 2. O botão (agora é um link <a> estilizado) */
+        .popup-button {{
             background: linear-gradient(45deg, #ff8c00, #ff6b00) !important;
             color: white !important;
-            border: none !important;
             padding: 18px 36px !important;
             font-size: 1.2em !important;
             border-radius: 50px !important;
             cursor: pointer !important;
             transition: all 0.3s ease !important;
-            width: auto !important;
             box-shadow: 0 6px 20px rgba(255, 140, 0, 0.4) !important;
             font-weight: 600 !important;
-            letter-spacing: 0.8px !important;
-            min-width: 220px !important;
-            text-transform: uppercase !important;
+            text-decoration: none !important;
             opacity: 0;
             animation: fadeIn 0.5s ease-out 0.3s forwards;
         }}
         
-        .stButton > button:hover {{
+        .popup-button:hover {{
             transform: translateY(-3px) !important;
             box-shadow: 0 8px 25px rgba(255, 140, 0, 0.6) !important;
-            background: linear-gradient(45deg, #ff9500, #ff7500) !important;
         }}
-        
-        .stButton {{
-            position: fixed !important;
-            bottom: 30px !important;
-            left: 1270px !important;
-            z-index: 10001 !important;
-            margin: 0 !important;
-            transform: none !important;
-        }}
-        
+
+        /* 3. Media Query para Tablets e Celulares */
         @media (max-width: 768px) {{
-            .stButton {{
-                bottom: 20px !important;
-                left: 20px !important;
-            }}
-            
-            .stButton > button {{
-                padding: 16px 28px !important;
-                font-size: 1.1em !important;
-                min-width: 180px !important;
+            .button-wrapper {{
+                justify-content: center; /* Centraliza horizontalmente */
+                padding-bottom: 10vh;
             }}
         }}
 
+        /* 4. Media Query para Celulares (ajuste fino) */
         @media (max-width: 480px) {{
-            .stButton {{
-                bottom: 15px !important;
-                left: 15px !important;
+            .button-wrapper {{
+                padding: 0 20px 8vh 20px; /* Espaçamento lateral e inferior */
             }}
-            
-            .stButton > button {{
-                padding: 14px 24px !important;
-                font-size: 1em !important;
-                min-width: 160px !important;
+            .popup-button {{
+                width: 100%;
+                text-align: center;
+                font-size: 1.1em !important;
             }}
         }}
         </style>
         """
         
-        st.markdown(popup_css, unsafe_allow_html=True)
-        st.markdown("""<div class="popup-overlay" id="popupOverlay"></div>""", unsafe_allow_html=True)
-        
-        if not svg_base64:
-            st.error("⚠️ SVG não foi carregado. Certifique-se de que o arquivo '31123505_7769742.psd(10).svg' está na mesma pasta do script.")
-        
-        # Botão modificado para funcionar corretamente
-        if st.button("🚀 Acessar Painel", key="close_popup_btn", help="Clique para acessar o painel principal"):
-            # Adiciona a animação de saída
-            st.markdown("""
-            <script>
-            document.getElementById('popupOverlay').classList.add('popup-exit');
-            </script>
-            """, unsafe_allow_html=True)
+        # Usamos query_params para detectar o "clique" no botão
+        if 'close_popup' not in st.query_params:
+            st.markdown(popup_css, unsafe_allow_html=True)
+            st.markdown('<div class="popup-overlay"></div>', unsafe_allow_html=True)
+            st.markdown(button_html, unsafe_allow_html=True)
             
-            # Fecha o popup após a animação completar
+            # Impede que o resto do script execute e mostre a página principal
+            st.stop()
+        else:
+            # Se o parâmetro existe, significa que o botão foi clicado
             st.session_state.show_popup = False
-            st.rerun()
-        
-        return True
-    else:
-        return False
+            # Limpa o query param para poder mostrar o popup novamente no futuro
+            st.query_params.clear()
 
-def reset_popup():
-    st.session_state.show_popup = True
-
-def hide_popup():
-    st.session_state.show_popup = False
-
-if __name__ == "__main__":
+# --- Lógica principal ---
+def main():
     st.set_page_config(
         page_title="Dashboard - Módulo de Venda",
         page_icon="🏠",
         layout="wide",
         initial_sidebar_state="collapsed"
     )
+
+    show_welcome_screen()
+
+    # O conteúdo principal do seu dashboard
+    st.title("🏠 Dashboard - Módulo de Venda")
+    st.write("Bem-vindo ao sistema!")
     
-    if show_welcome_screen():
-        pass
-    else:
-        st.title("🏠 Dashboard - Módulo de Venda")
-        st.write("Bem-vindo ao sistema!")
-        
-        if st.button("Mostrar Popup Novamente"):
-            reset_popup()
-            st.rerun()
+    if st.button("Mostrar Popup Novamente"):
+        st.session_state.show_popup = True
+        st.rerun()
+
+if __name__ == "__main__":
+    main()
