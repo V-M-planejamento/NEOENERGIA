@@ -127,7 +127,7 @@ def filtrar_linhas_invalidas(df):
     ]
     
     # Colunas críticas para verificar
-    colunas_criticas = ['Empreendimento', 'FASE', 'SERVIÇO', 'Nome da tarefa', 'EMP', 'UGB']
+    colunas_criticas = ['Empreendimento', 'FASE', 'Nome da tarefa', 'EMP', 'UGB']
     colunas_existentes = [col for col in colunas_criticas if col in df.columns]
     
     print(f"Colunas críticas para verificação: {colunas_existentes}")
@@ -203,7 +203,7 @@ def process_data(df):
 
         # 3. Remover colunas desnecessárias
         colunas_remover = [
-            "RowNumber", "CATEGORIA", "Destaque", "Atualizar", "Antecessores", 
+            "SERVIÇO","RowNumber", "CATEGORIA", "Destaque", "Atualizar", "Antecessores", 
             "Duração", "Variação (LB-Termino)", "Início LB", "Término LB", 
             "Dur LB", "Atribuído a", "PRAZO CARTAS"
         ]
