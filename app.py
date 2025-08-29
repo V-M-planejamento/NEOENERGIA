@@ -182,6 +182,23 @@ def padronizar_etapa(etapa_str):
     if etapa_limpa in sigla_para_nome_completo: return etapa_limpa
     return 'UNKNOWN'
 
+# NOVA FUNÇÃO: Filtrar etapas não concluídas
+def filtrar_etapas_nao_concluidas(df):
+    """
+    Filtra o DataFrame para mostrar apenas etapas que não estão 100% concluídas.
+    """
+    if df.empty or '% concluído' not in df.columns:
+        return df
+    
+    # Converter porcentagens para formato numérico
+    df_copy = df.copy()
+    df_copy['% concluído'] = df_copy['% concluído'].apply(converter_porcentagem)
+    
+    # Filtrar apenas etapas com menos de 100% de conclusão
+    df_filtrado = df_copy[df_copy['% concluído'] < 100]
+    
+    return df_filtrado
+
 # --- Função Principal do Gráfico de Gantt ---
 def gerar_gantt(df, tipo_visualizacao="Ambos"):
     if df.empty:
@@ -443,7 +460,6 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
 
 #========================================================================================================
 
-# --- Lógica Principal do App Streamlit (com alterações) ---
 st.set_page_config(layout="wide", page_title="Dashboard de Gantt Comparativo")
 
 @st.cache_data
@@ -454,14 +470,15 @@ def load_data():
     if processar_smartsheet_main:
         try:
             processar_smartsheet_main()
-            df_real = pd.read_csv('Dados Reais Tratados e Ordenados.csv')
+            df_real = pd.read_csv("Dados Reais Tratados e Ordenados.csv")
         except Exception as e:
             st.warning(f"Erro ao carregar dados reais do Smartsheet: {e}")
 
     if tratar_e_retornar_dados_previstos:
         try:
             df_previsto = tratar_e_retornar_dados_previstos()
-            if df_previsto is None: df_previsto = pd.DataFrame()
+            if df_previsto is None:
+                df_previsto = pd.DataFrame()
         except Exception as e:
             st.warning(f"Erro ao carregar dados previstos: {e}")
 
@@ -469,41 +486,68 @@ def load_data():
         st.warning("Nenhuma fonte de dados carregada. Usando dados de exemplo.")
         return criar_dados_exemplo()
 
-    # Padronização dos dados
+    # Padronização e Merge
     if not df_real.empty:
-        df_real['Etapa'] = df_real['Etapa'].apply(padronizar_etapa)
-        df_real.rename(columns={'Emp': 'Empreendimento', 'Iniciar': 'Inicio_Real', 'Terminar': 'Termino_Real'}, inplace=True)
-        df_real['% concluído'] = df_real.get('% concluído', pd.Series(0.0)).apply(converter_porcentagem)
-        # Garantir que a coluna FASE existe (se vier do Smartsheet)
-        if 'FASE' not in df_real.columns:
-            df_real['FASE'] = 'Não especificada'
+        df_real["Etapa"] = df_real["Etapa"].apply(padronizar_etapa)
+        df_real.rename(
+            columns={
+                "Emp": "Empreendimento",
+                "Iniciar": "Inicio_Real",
+                "Terminar": "Termino_Real",
+            },
+            inplace=True,
+        )
+        df_real["% concluído"] = df_real.get("% concluído", pd.Series(0.0)).apply(
+            converter_porcentagem
+        )
+        # Garantir que a coluna FASE existe nos dados reais
+        if "FASE" not in df_real.columns:
+            df_real["FASE"] = df_real["Etapa"].map(FASE_POR_ETAPA).fillna("Não especificada")
 
     if not df_previsto.empty:
-        df_previsto['Etapa'] = df_previsto['Etapa'].apply(padronizar_etapa)
-        df_previsto.rename(columns={'EMP': 'Empreendimento', 'Valor': 'Data_Prevista'}, inplace=True)
-        df_previsto_pivot = df_previsto.pivot_table(
-            index=['UGB', 'Empreendimento', 'Etapa'], columns='Inicio_Fim', values='Data_Prevista', aggfunc='first'
-        ).reset_index()
-        df_previsto_pivot.rename(columns={'INÍCIO': 'Inicio_Prevista', 'TÉRMINO': 'Termino_Prevista'}, inplace=True)
+        df_previsto["Etapa"] = df_previsto["Etapa"].apply(padronizar_etapa)
+        df_previsto.rename(
+            columns={
+                "EMP": "Empreendimento",
+                "Valor": "Data_Prevista",
+            },
+            inplace=True,
+        )
+        df_previsto_pivot = (
+            df_previsto.pivot_table(
+                index=["UGB", "Empreendimento", "Etapa"],
+                columns="Inicio_Fim",
+                values="Data_Prevista",
+                aggfunc="first",
+            )
+            .reset_index()
+        )
+        df_previsto_pivot.rename(
+            columns={
+                "INÍCIO": "Inicio_Prevista",
+                "TÉRMINO": "Termino_Prevista",
+            },
+            inplace=True,
+        )
         # Garantir que a coluna FASE existe nos dados previstos
-        if 'FASE' not in df_previsto_pivot.columns:
-            df_previsto_pivot['FASE'] = 'Não especificada'
+        if "FASE" not in df_previsto_pivot.columns:
+            df_previsto_pivot["FASE"] = df_previsto_pivot["Etapa"].map(FASE_POR_ETAPA).fillna("Não especificada")
 
     # CORREÇÃO: Merge considerando apenas UGB, Empreendimento e Etapa (não FASE)
     # Isso garante que dados previstos e reais da mesma etapa apareçam juntos
     if not df_real.empty and not df_previsto_pivot.empty:
         df_merged = pd.merge(
             df_previsto_pivot,
-            df_real[['UGB', 'Empreendimento', 'Etapa', 'Inicio_Real', 'Termino_Real', '% concluído', 'FASE']],
-            on=['UGB', 'Empreendimento', 'Etapa'],  # Removido 'FASE' do merge
-            how='outer',
-            suffixes=('_prev', '_real')
+            df_real[["UGB", "Empreendimento", "Etapa", "Inicio_Real", "Termino_Real", "% concluído", "FASE"]],
+            on=["UGB", "Empreendimento", "Etapa"],  # Removido 'FASE' do merge
+            how="outer",
+            suffixes=["_prev", "_real"],
         )
-        
+
         # Combinar as colunas FASE (priorizando a dos dados reais se disponível)
-        df_merged['FASE'] = df_merged['FASE_real'].combine_first(df_merged['FASE_prev'])
-        df_merged.drop(['FASE_prev', 'FASE_real'], axis=1, inplace=True)
-        
+        df_merged["FASE"] = df_merged["FASE_real"].combine_first(df_merged["FASE_prev"])
+        df_merged.drop(["FASE_prev", "FASE_real"], axis=1, inplace=True)
+
     elif not df_previsto_pivot.empty:
         df_merged = df_previsto_pivot
     elif not df_real.empty:
@@ -512,34 +556,84 @@ def load_data():
         df_merged = pd.DataFrame()
 
     # Preencher valores faltantes
-    df_merged['% concluído'] = df_merged.get('% concluído', pd.Series(0.0)).fillna(0)
-    if 'Inicio_Real' not in df_merged.columns: 
-        df_merged['Inicio_Real'] = pd.NaT
-    if 'Termino_Real' not in df_merged.columns: 
-        df_merged['Termino_Real'] = pd.NaT
-    if 'Inicio_Prevista' not in df_merged.columns: 
-        df_merged['Inicio_Prevista'] = pd.NaT
-    if 'Termino_Prevista' not in df_merged.columns: 
-        df_merged['Termino_Prevista'] = pd.NaT
-    if 'FASE' not in df_merged.columns: 
-        df_merged['FASE'] = 'Não especificada'
+    df_merged["% concluído"] = df_merged.get("% concluído", pd.Series(0.0)).fillna(0)
+    if "Inicio_Real" not in df_merged.columns:
+        df_merged["Inicio_Real"] = pd.NaT
+    if "Termino_Real" not in df_merged.columns:
+        df_merged["Termino_Real"] = pd.NaT
+    if "Inicio_Prevista" not in df_merged.columns:
+        df_merged["Inicio_Prevista"] = pd.NaT
+    if "Termino_Prevista" not in df_merged.columns:
+        df_merged["Termino_Prevista"] = pd.NaT
+    if "FASE" not in df_merged.columns:
+        df_merged["FASE"] = "Não especificada"
 
     # Remover linhas sem informações essenciais
-    df_merged.dropna(subset=['Empreendimento', 'Etapa'], inplace=True)
-    
+    df_merged.dropna(subset=["Empreendimento", "Etapa"], inplace=True)
+
     return df_merged
 
 def criar_dados_exemplo():
     dados = {
-        'UGB': ['UGB1', 'UGB1', 'UGB1', 'UGB2', 'UGB2', 'UGB1'],
-        'Empreendimento': ['Residencial Alfa', 'Residencial Alfa', 'Residencial Alfa', 'Condomínio Beta', 'Condomínio Beta', 'Projeto Gama'],
-        'Etapa': ['DM', 'DOC', 'ENG', 'DM', 'DOC', 'DM'],
-        'FASE': ['Planejamento', 'Execução', 'Execução', 'Planejamento', 'Execução', 'Planejamento'],
-        'Inicio_Prevista': pd.to_datetime(['2024-02-01', '2024-03-01', '2024-04-15', '2024-03-20', '2024-05-01', '2024-01-10']),
-        'Termino_Prevista': pd.to_datetime(['2024-02-28', '2024-04-10', '2024-05-30', '2024-04-28', '2024-06-15', '2024-01-31']),
-        'Inicio_Real': pd.to_datetime(['2024-02-05', '2024-03-03', pd.NaT, '2024-03-25', '2024-05-05', '2024-01-12']),
-        'Termino_Real': pd.to_datetime(['2024-03-02', '2024-04-15', pd.NaT, '2024-05-05', pd.NaT, '2024-02-01']),
-        '% concluído': [100, 100, 40, 100, 85, 100]
+        "UGB": ["UGB1", "UGB1", "UGB1", "UGB2", "UGB2", "UGB1"],
+        "Empreendimento": [
+            "Residencial Alfa",
+            "Residencial Alfa",
+            "Residencial Alfa",
+            "Condomínio Beta",
+            "Condomínio Beta",
+            "Projeto Gama",
+        ],
+        "Etapa": ["DM", "DOC", "ENG", "DM", "DOC", "DM"],
+        "FASE": [
+            "Planejamento",
+            "Execução",
+            "Execução",
+            "Planejamento",
+            "Execução",
+            "Planejamento",
+        ],
+        "Inicio_Prevista": pd.to_datetime(
+            [
+                "2024-02-01",
+                "2024-03-01",
+                "2024-04-15",
+                "2024-03-20",
+                "2024-05-01",
+                "2024-01-10",
+            ]
+        ),
+        "Termino_Prevista": pd.to_datetime(
+            [
+                "2024-02-28",
+                "2024-04-10",
+                "2024-05-30",
+                "2024-04-28",
+                "2024-06-15",
+                "2024-01-31",
+            ]
+        ),
+        "Inicio_Real": pd.to_datetime(
+            [
+                "2024-02-05",
+                "2024-03-03",
+                pd.NaT,
+                "2024-03-25",
+                "2024-05-05",
+                "2024-01-12",
+            ]
+        ),
+        "Termino_Real": pd.to_datetime(
+            [
+                "2024-03-02",
+                "2024-04-15",
+                pd.NaT,
+                "2024-05-05",
+                pd.NaT,
+                "2024-02-01",
+            ]
+        ),
+        "% concluído": [100, 100, 40, 100, 85, 100],
     }
     return pd.DataFrame(dados)
 
@@ -550,7 +644,8 @@ if show_welcome_screen():
     st.stop()  # Para a execução do resto do app enquanto o popup está ativo
 
 # CSS customizado (mantido igual)
-st.markdown("""
+st.markdown(
+    """
 <style>
     /* Altera APENAS os checkboxes dos multiselects */
     div.stMultiSelect div[role="option"] input[type="checkbox"]:checked + div > div:first-child {
@@ -572,11 +667,13 @@ st.markdown("""
     }
     
     /* Espaçamento entre os filtros */
-    .stSidebar .stMultiSelect, .stSidebar .stSelectbox, .stSidebar .stRadio {
+    .stSidebar .stMultiSelect, .stSidebar .stSelectbox, .stSidebar .stRadio, .stSidebar .stCheckbox {
         margin-bottom: 1rem;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 st.title("Neoenergia")
 
@@ -591,32 +688,34 @@ def filter_dataframe(df, ugb_filter, emp_filter, fase_filter):
     """Função para cachear filtragem do DataFrame"""
     if not ugb_filter:
         return df.iloc[0:0]  # DataFrame vazio se nenhuma UGB selecionada
-    
+
     df_filtered = df[df["UGB"].isin(ugb_filter)]
-    
+
     if emp_filter:
         df_filtered = df_filtered[df_filtered["Empreendimento"].isin(emp_filter)]
-    
+
     if fase_filter:
         df_filtered = df_filtered[df_filtered["FASE"].isin(fase_filter)]
-    
+
     return df_filtered
 
-with st.spinner('Carregando e processando dados...'):
+with st.spinner("Carregando e processando dados..."):
     df_data = load_data()
 
 if df_data is not None and not df_data.empty:
     # Logo no sidebar
     with st.sidebar:
         st.markdown("<br>", unsafe_allow_html=True)  # Espaço no topo
-        
+
         # Centraliza a imagem
-        col1, col2, col3 = st.columns([1,2,1])
+        col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             try:
                 st.image("logoNova.png", width=200)
             except FileNotFoundError:
-                st.warning("Logo não encontrada. Verifique se o arquivo 'logoNova.png' está no diretório correto.")
+                st.warning(
+                    "Logo não encontrada. Verifique se o arquivo 'logoNova.png' está no diretório correto."
+                )
 
         # 1️⃣ Filtro UGB (Componente personalizado)
         ugb_options = get_unique_values(df_data, "UGB")
@@ -624,91 +723,119 @@ if df_data is not None and not df_data.empty:
             label="Filtrar por UGB",
             options=ugb_options,
             key="ugb_filter",
-            default_selected=ugb_options
+            default_selected=ugb_options,
         )
-        
+
         # 2️⃣ Filtro Empreendimento (Componente personalizado)
         # Otimização: só calcular opções de empreendimento se UGB foi selecionada
         if selected_ugb:
             emp_options = get_unique_values(
-                df_data[df_data["UGB"].isin(selected_ugb)], 
-                "Empreendimento"
+                df_data[df_data["UGB"].isin(selected_ugb)], "Empreendimento"
             )
         else:
             emp_options = []
-            
+
         selected_emp = simple_multiselect_dropdown(
             label="Filtrar por Empreendimento",
             options=emp_options,
             key="empreendimento_filter",
-            default_selected=emp_options
+            default_selected=emp_options,
         )
-        
+
         # 3️⃣ Filtro FASE (NOVO FILTRO - mesmo estilo dos anteriores)
         # Otimização: só calcular opções de fase se UGB e Empreendimento foram selecionados
         if selected_ugb:
             # Primeiro filtra por UGB
             df_temp = df_data[df_data["UGB"].isin(selected_ugb)]
-            
+
             # Depois filtra por Empreendimento se houver seleção
             if selected_emp:
                 df_temp = df_temp[df_temp["Empreendimento"].isin(selected_emp)]
-            
+
             fase_options = get_unique_values(df_temp, "FASE")
         else:
             fase_options = []
-            
+
         selected_fase = simple_multiselect_dropdown(
             label="Filtrar por FASE",
             options=fase_options,
             key="fase_filter",
-            default_selected=fase_options
+            default_selected=fase_options,
         )
-        
+
         # 4️⃣ Filtro Etapa (agora depende também do filtro de FASE)
         # Aplicar todos os filtros antes de mostrar etapas
-        df_temp_filtered = filter_dataframe(df_data, selected_ugb, selected_emp, selected_fase)
-        
+        df_temp_filtered = filter_dataframe(
+            df_data, selected_ugb, selected_emp, selected_fase
+        )
+
         if not df_temp_filtered.empty:
             etapas_disponiveis = get_unique_values(df_temp_filtered, "Etapa")
-            
+
             # Ordenar etapas se sigla_para_nome_completo estiver definido
             try:
                 etapas_disponiveis = sorted(
                     etapas_disponiveis,
-                    key=lambda x: list(sigla_para_nome_completo.keys()).index(x) if x in sigla_para_nome_completo else 99
+                    key=lambda x:
+                        list(sigla_para_nome_completo.keys()).index(x)
+                        if x in sigla_para_nome_completo
+                        else 99,
                 )
-                etapas_para_exibir = ["Todos"] + [sigla_para_nome_completo.get(e, e) for e in etapas_disponiveis]
+                etapas_para_exibir = ["Todos"] + [
+                    sigla_para_nome_completo.get(e, e) for e in etapas_disponiveis
+                ]
             except NameError:
                 # Se sigla_para_nome_completo não estiver definido, usar as etapas como estão
                 etapas_para_exibir = ["Todos"] + etapas_disponiveis
         else:
             etapas_para_exibir = ["Todos"]
-        
+
         selected_etapa_nome = st.selectbox(
-            "Filtrar por Etapa",
-            options=etapas_para_exibir
+            "Filtrar por Etapa", options=etapas_para_exibir
         )
 
-        # 5️⃣ Opção de visualização
-        tipo_visualizacao = st.radio("Mostrar dados:", ("Ambos", "Previsto", "Real"))
+    # 4️⃣ NOVO FILTRO: Etapas não concluídas
+    st.sidebar.markdown("---")
+    filtrar_nao_concluidas = st.sidebar.checkbox(
+        "Mostrar apenas etapas não concluídas",
+        value=False,
+        help="Quando marcado, mostra apenas etapas com menos de 100% de conclusão",
+    )
+
+    # 5️⃣ Opção de visualização
+    st.sidebar.markdown("---")
+    tipo_visualizacao = st.sidebar.radio("Mostrar dados:", ("Ambos", "Previsto", "Real"))
 
     # Aplica todos os filtros finais
     df_filtered = filter_dataframe(df_data, selected_ugb, selected_emp, selected_fase)
-    
+
     # Aplica o filtro de etapa final
     if selected_etapa_nome != "Todos" and not df_filtered.empty:
         try:
-            sigla_selecionada = nome_completo_para_sigla.get(selected_etapa_nome, selected_etapa_nome)
+            sigla_selecionada = nome_completo_para_sigla.get(
+                selected_etapa_nome, selected_etapa_nome
+            )
             df_filtered = df_filtered[df_filtered["Etapa"] == sigla_selecionada]
         except NameError:
             # Se nome_completo_para_sigla não estiver definido, usar o nome como está
             df_filtered = df_filtered[df_filtered["Etapa"] == selected_etapa_nome]
 
+    # APLICAR NOVO FILTRO: Etapas não concluídas
+    if filtrar_nao_concluidas and not df_filtered.empty:
+        df_filtered = filtrar_etapas_nao_concluidas(df_filtered)
+
+        # Mostrar informação sobre o filtro aplicado
+        if not df_filtered.empty:
+            total_etapas_nao_concluidas = len(df_filtered)
+            st.sidebar.success(f"✅ Mostrando {total_etapas_nao_concluidas} etapas não concluídas")
+        else:
+            st.sidebar.info("ℹ️ Todas as etapas estão 100% concluídas")
+
+
+
     # Resto do código mantido igual...
     # Abas principais
     tab1, tab2 = st.tabs(["📈 Gráfico de Gantt – Previsto vs Real", "💾 Tabelão Horizontal"])
-    
 #========================================================================================================
 
     with tab1:
