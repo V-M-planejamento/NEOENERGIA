@@ -13,7 +13,7 @@ from matplotlib.legend_handler import HandlerTuple
 from dropdown_component import simple_multiselect_dropdown
 from popup import show_welcome_screen
 from st_aggrid import AgGrid
-from calculate_business_days import calculate_business_days    
+from calculate_business_days import calculate_business_days
 
 try:
     from processa_neo import tratar_e_retornar_dados_previstos
@@ -42,7 +42,7 @@ class StyleConfig:
     CELULA_IMPAR = {'facecolor': '#f1f3f5', 'edgecolor': '#d1d5db', 'lw': 0.8}
     FUNDO_TABELA = '#f8f9fa'
     ESPACO_ENTRE_EMPREENDIMENTOS = 1.5
-    
+
     # Cores por fase (para barras previstas e reais)
     CORES_POR_FASE = {
         "ENG.PROD": {"previsto": "#ffe1af", "real": "#be5900"},
@@ -55,37 +55,37 @@ class StyleConfig:
 
 # --- MAPA DE FASE PARA ETAPAS ---
 FASE_POR_ETAPA = {
-    "PL-ER-E-IP": "ENG.PROD", 
-    "APROV-ER-(NEO)": "LEG.", 
-    "APROV-IP-(NEO)": "LEG.", 
-    "PIQ": "INFRA", 
-    "SOLIC-CONEXÃO": "LEG.", 
-    "CONEXÃO": "LEG.", 
-    "PROJ-EXEC": "ENG.PROD", 
-    "ORÇ": "ORÇ.", 
-    "SUP": "SUP.", 
-    "EXECUÇÃO-TER": "INFRA", 
-    "EXECUÇÃO-ER": "INFRA", 
-    "EXECUÇÃO-IP": "INFRA", 
-    "INCORPORAÇÃO": "LEG.", 
-    "PINT-BAR": "INFRA", 
-    "COMISSIONAMENTO": "LEG.", 
-    "LIG-IP": "LEG.", 
-    "CARTA": "LEG.", 
-    "ENTREGA": "PROD." 
+    "PL-ER-E-IP": "ENG.PROD",
+    "APROV-ER-(NEO)": "LEG.",
+    "APROV-IP-(NEO)": "LEG.",
+    "PIQ": "INFRA",
+    "SOLIC-CONEXÃO": "LEG.",
+    "CONEXÃO": "LEG.",
+    "PROJ-EXEC": "ENG.PROD",
+    "ORÇ": "ORÇ.",
+    "SUP": "SUP.",
+    "EXECUÇÃO-TER": "INFRA",
+    "EXECUÇÃO-ER": "INFRA",
+    "EXECUÇÃO-IP": "INFRA",
+    "INCORPORAÇÃO": "LEG.",
+    "PINT-BAR": "INFRA",
+    "COMISSIONAMENTO": "LEG.",
+    "LIG-IP": "LEG.",
+    "CARTA": "LEG.",
+    "ENTREGA": "PROD."
 }
 
 # --- Função para abreviar nomes longos ---
 def abreviar_nome(nome):
     if pd.isna(nome):
         return nome
-    
+
     nome = nome.replace('CONDOMINIO ', '')
     palavras = nome.split()
-    
+
     if len(palavras) > 3:
         nome = ' '.join(palavras[:3])
-    
+
     return nome
 
 # --- Funções Utilitárias e Mapeamentos ---
@@ -113,13 +113,13 @@ def calcular_dias_uteis(inicio, fim):
 def calcular_porcentagem_correta(grupo):
     if '% concluído' not in grupo.columns:
         return 0.0
-    
+
     porcentagens = grupo['% concluído'].astype(str).apply(converter_porcentagem)
     porcentagens = porcentagens[(porcentagens >= 0) & (porcentagens <= 100)]
-    
+
     if len(porcentagens) == 0:
         return 0.0
-    
+
     porcentagens_validas = porcentagens[pd.notna(porcentagens)]
     if len(porcentagens_validas) == 0:
         return 0.0
@@ -156,7 +156,7 @@ sigla_para_nome_completo = {
     "SOLIC-CONEXÃO": "SOLICITAÇÃO DE CONEXÃO",
     "CONEXÃO":       "CONEXÃO",
     "PROJ-EXEC":     "PROJETO EXECUTIVO",
-    "ORÇ":          "ORÇAMENTO", 
+    "ORÇ":          "ORÇAMENTO",
     "SUP":          "SUPRIMENTOS",
     "EXECUÇÃO-TER":  "EXECUÇÃO TER",
     "EXECUÇÃO-ER":   "EXECUÇÃO ER",
@@ -189,14 +189,14 @@ def filtrar_etapas_nao_concluidas(df):
     """
     if df.empty or '% concluído' not in df.columns:
         return df
-    
+
     # Converter porcentagens para formato numérico
     df_copy = df.copy()
     df_copy['% concluído'] = df_copy['% concluído'].apply(converter_porcentagem)
-    
+
     # Filtrar apenas etapas com menos de 100% de conclusão
     df_filtrado = df_copy[df_copy['% concluído'] < 100]
-    
+
     return df_filtrado
 
 # --- Função Principal do Gráfico de Gantt ---
@@ -242,7 +242,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
 
     # Adiciona coluna de ordem baseada no mapa_ordem
     df['Etapa_Ordem'] = df['Etapa'].apply(lambda x: mapa_ordem.get(x, 999))
-    
+
     if num_empreendimentos > 1 and num_etapas == 1:
         df['Empreendimento'] = df['Empreendimento'].str.replace('CONDOMINIO ', '', regex=False)
         sort_col = 'Inicio_Real' if tipo_visualizacao == "Real" else 'Inicio_Prevista'
@@ -254,7 +254,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
     hoje = pd.Timestamp.now()
     rotulo_para_posicao = {}
     posicao = 0
-    
+
     if num_empreendimentos > 1 and num_etapas == 1:
         for rotulo in df['Empreendimento'].unique():
             rotulo_para_posicao[rotulo] = posicao
@@ -266,7 +266,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
             # Ordena as etapas pela ordem do mapa_ordem
             etapas_do_empreendimento = df[df['Empreendimento'] == empreendimento]
             etapas_ordenadas = etapas_do_empreendimento.sort_values('Etapa_Ordem')['Etapa'].unique()
-            
+
             for etapa in etapas_ordenadas:
                 rotulo = f'{empreendimento}||{etapa}'
                 rotulo_para_posicao[rotulo] = posicao
@@ -301,7 +301,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
     empreendimento_atual = None
     for _, linha in dados_consolidados.iterrows():
         y_pos = linha['Posicao']
-        
+
         if not (num_empreendimentos > 1 and num_etapas == 1) and linha['Empreendimento'] != empreendimento_atual:
             empreendimento_atual = linha['Empreendimento']
             nome_formatado = empreendimento_atual.replace('CONDOMINIO ', '')
@@ -320,16 +320,16 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
             ordem = linha['Etapa_Ordem']
             nome_etapa = sigla_para_nome_completo.get(linha['Etapa'], linha['Etapa'])
             texto_principal = f"{ordem}. {nome_etapa}" if ordem != 999 else nome_etapa
-        
+
         eixo_tabela.text(0.04, y_pos - 0.2, texto_principal, va="center", ha="left", **StyleConfig.FONTE_ETAPA)
-        
+
         # Adiciona a contagem de dias úteis ao texto
         dias_uteis_prev = calcular_dias_uteis(linha['Inicio_Prevista'], linha['Termino_Prevista'])
         dias_uteis_real = calcular_dias_uteis(linha['Inicio_Real'], linha['Termino_Real'])
-        
+
         texto_prev = f"Prev: {formatar_data(linha['Inicio_Prevista'])} → {formatar_data(linha['Termino_Prevista'])}-({dias_uteis_prev}d)"
         texto_real = f"Real: {formatar_data(linha['Inicio_Real'])} → {formatar_data(linha['Termino_Real'])}-({dias_uteis_real}d)"
-        
+
         eixo_tabela.text(0.04, y_pos + 0.05, f"{texto_prev:<32}", va="center", ha="left", **StyleConfig.FONTE_DATAS)
         eixo_tabela.text(0.04, y_pos + 0.28, f"{texto_real:<32}", va="center", ha="left", **StyleConfig.FONTE_DATAS)
 
@@ -337,7 +337,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         termino_real = linha['Termino_Real']
         termino_previsto = linha['Termino_Prevista']
         hoje = pd.Timestamp.now()
-        
+
         cor_texto = "#000000"
         cor_caixa = estilo_celula['facecolor']
         if percentual == 100:
@@ -353,14 +353,14 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         eixo_tabela.add_patch(Rectangle((0.78, y_pos - 0.2), 0.2, 0.4, facecolor=cor_caixa, edgecolor="#d1d5db", lw=0.8))
         percentual_texto = f"{percentual:.1f}%" if percentual % 1 != 0 else f"{int(percentual)}%"
         eixo_tabela.text(0.88, y_pos, percentual_texto, va="center", ha="center", color=cor_texto, **StyleConfig.FONTE_PORCENTAGEM)
-    
+
     # --- Desenho das Barras ---
     datas_relevantes = []
     for _, linha in dados_consolidados.iterrows():
         y_pos = linha['Posicao']
         ALTURA_BARRA = StyleConfig.ALTURA_BARRA_GANTT
         ESPACAMENTO = 0 if tipo_visualizacao != "Ambos" else StyleConfig.ALTURA_BARRA_GANTT * 0.5
-        
+
         # Determina a fase da etapa atual
         fase = FASE_POR_ETAPA.get(linha['Etapa'], "OUTROS")
         cor_previsto = StyleConfig.CORES_POR_FASE.get(fase, {}).get("previsto", "#A8C5DA")
@@ -399,10 +399,10 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
     max_pos = max(rotulo_para_posicao.values())
     eixo_gantt.set_ylim(max_pos + 1, -1)
     eixo_gantt.set_yticks([])
-    
+
     for pos in rotulo_para_posicao.values():
         eixo_gantt.axhline(y=pos + 0.5, color='#dcdcdc', linestyle='-', alpha=0.7, linewidth=0.8)
-    
+
     eixo_gantt.axvline(hoje, color=StyleConfig.COR_HOJE, linestyle='--', linewidth=1.5)
     eixo_gantt.text(hoje, eixo_gantt.get_ylim()[0], ' Hoje', color=StyleConfig.COR_HOJE, fontsize=10, ha='left', va='bottom')
 
@@ -420,7 +420,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
                 eixo_gantt.axvline(data_meta, color=StyleConfig.COR_META_ASSINATURA, linestyle="--", linewidth=1.7, alpha=0.7)
                 y_texto = eixo_gantt.get_ylim()[1] + 0.2
                 eixo_gantt.text(data_meta, y_texto,
-                            f"Meta {tipo_meta}\nEntrega: {data_meta.strftime('%d/%m/%y')}", 
+                            f"Meta {tipo_meta}\nEntrega: {data_meta.strftime('%d/%m/%y')}",
                             color=StyleConfig.COR_META_ASSINATURA, fontsize=10, ha="center", va="top",
                             bbox=dict(facecolor="white", alpha=0.8, edgecolor=StyleConfig.COR_META_ASSINATURA, boxstyle="round,pad=0.5"))
 
@@ -450,7 +450,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         frameon=False,
         borderaxespad=0.1,
         fontsize=8,
-        title=" Fases (Previsto | Real)"
+        title=" (Previsto | Real)"
     )
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])
@@ -484,19 +484,30 @@ def load_data():
 
     if df_real.empty and df_previsto.empty:
         st.warning("Nenhuma fonte de dados carregada. Usando dados de exemplo.")
-        return criar_dados_exemplo()
+        return 
 
     # Padronização e Merge
     if not df_real.empty:
         df_real["Etapa"] = df_real["Etapa"].apply(padronizar_etapa)
-        df_real.rename(
-            columns={
-                "Emp": "Empreendimento",
-                "Iniciar": "Inicio_Real",
-                "Terminar": "Termino_Real",
-            },
-            inplace=True,
-        )
+        # CORREÇÃO: Verificar se as colunas existem antes de renomear
+        if "Data de Início" in df_real.columns and "Data de Fim" in df_real.columns:
+            df_real.rename(
+                columns={
+                    "Emp": "Empreendimento",
+                    "Data de Início": "Inicio_Real",
+                    "Data de Fim": "Termino_Real",
+                },
+                inplace=True,
+            )
+        else:
+            # Se as colunas não existirem, criar com valores vazios
+            if "Inicio_Real" not in df_real.columns:
+                df_real["Inicio_Real"] = pd.NaT
+            if "Termino_Real" not in df_real.columns:
+                df_real["Termino_Real"] = pd.NaT
+            if "Empreendimento" not in df_real.columns and "Emp" in df_real.columns:
+                df_real.rename(columns={"Emp": "Empreendimento"}, inplace=True)
+        
         df_real["% concluído"] = df_real.get("% concluído", pd.Series(0.0)).apply(
             converter_porcentagem
         )
@@ -504,6 +515,7 @@ def load_data():
         if "FASE" not in df_real.columns:
             df_real["FASE"] = df_real["Etapa"].map(FASE_POR_ETAPA).fillna("Não especificada")
 
+    df_previsto_pivot = pd.DataFrame() # Inicializa como DataFrame vazio
     if not df_previsto.empty:
         df_previsto["Etapa"] = df_previsto["Etapa"].apply(padronizar_etapa)
         df_previsto.rename(
@@ -533,20 +545,40 @@ def load_data():
         if "FASE" not in df_previsto_pivot.columns:
             df_previsto_pivot["FASE"] = df_previsto_pivot["Etapa"].map(FASE_POR_ETAPA).fillna("Não especificada")
 
-    # CORREÇÃO: Merge considerando apenas UGB, Empreendimento e Etapa (não FASE)
-    # Isso garante que dados previstos e reais da mesma etapa apareçam juntos
+    # --- CORREÇÃO PRINCIPAL: Verificar se as colunas existem antes do merge ---
+    # Define a lista de colunas desejadas do df_real
+    colunas_real_desejadas = ["UGB", "Empreendimento", "Etapa", "Inicio_Real", "Termino_Real", "% concluído", "FASE"]
+    
+    # Filtra a lista para incluir apenas as colunas que realmente existem no df_real
+    colunas_real_existentes = [col for col in colunas_real_desejadas if col in df_real.columns]
+    
+    # Se não existirem as colunas de datas reais, criar colunas vazias
+    if "Inicio_Real" not in colunas_real_existentes:
+        df_real["Inicio_Real"] = pd.NaT
+        colunas_real_existentes.append("Inicio_Real")
+    
+    if "Termino_Real" not in colunas_real_existentes:
+        df_real["Termino_Real"] = pd.NaT
+        colunas_real_existentes.append("Termino_Real")
+
+    # Merge considerando apenas UGB, Empreendimento e Etapa
     if not df_real.empty and not df_previsto_pivot.empty:
         df_merged = pd.merge(
             df_previsto_pivot,
-            df_real[["UGB", "Empreendimento", "Etapa", "Inicio_Real", "Termino_Real", "% concluído", "FASE"]],
-            on=["UGB", "Empreendimento", "Etapa"],  # Removido 'FASE' do merge
+            df_real[colunas_real_existentes], # Usa a lista de colunas filtrada
+            on=["UGB", "Empreendimento", "Etapa"],
             how="outer",
             suffixes=["_prev", "_real"],
         )
 
         # Combinar as colunas FASE (priorizando a dos dados reais se disponível)
-        df_merged["FASE"] = df_merged["FASE_real"].combine_first(df_merged["FASE_prev"])
-        df_merged.drop(["FASE_prev", "FASE_real"], axis=1, inplace=True)
+        if "FASE_real" in df_merged.columns and "FASE_prev" in df_merged.columns:
+            df_merged["FASE"] = df_merged["FASE_real"].combine_first(df_merged["FASE_prev"])
+            df_merged.drop(["FASE_prev", "FASE_real"], axis=1, inplace=True)
+        elif "FASE_real" in df_merged.columns:
+            df_merged.rename(columns={"FASE_real": "FASE"}, inplace=True)
+        elif "FASE_prev" in df_merged.columns:
+            df_merged.rename(columns={"FASE_prev": "FASE"}, inplace=True)
 
     elif not df_previsto_pivot.empty:
         df_merged = df_previsto_pivot
@@ -556,86 +588,22 @@ def load_data():
         df_merged = pd.DataFrame()
 
     # Preencher valores faltantes
-    df_merged["% concluído"] = df_merged.get("% concluído", pd.Series(0.0)).fillna(0)
-    if "Inicio_Real" not in df_merged.columns:
-        df_merged["Inicio_Real"] = pd.NaT
-    if "Termino_Real" not in df_merged.columns:
-        df_merged["Termino_Real"] = pd.NaT
-    if "Inicio_Prevista" not in df_merged.columns:
-        df_merged["Inicio_Prevista"] = pd.NaT
-    if "Termino_Prevista" not in df_merged.columns:
-        df_merged["Termino_Prevista"] = pd.NaT
-    if "FASE" not in df_merged.columns:
-        df_merged["FASE"] = "Não especificada"
+    if "% concluído" in df_merged.columns:
+        df_merged["% concluído"] = df_merged["% concluído"].fillna(0)
+    else:
+        df_merged["% concluído"] = 0.0
+    
+    # Garantir que todas as colunas necessárias existam
+    colunas_necessarias = ["Inicio_Real", "Termino_Real", "Inicio_Prevista", "Termino_Prevista", "FASE"]
+    for col in colunas_necessarias:
+        if col not in df_merged.columns:
+            df_merged[col] = pd.NaT if col in ["Inicio_Real", "Termino_Real", "Inicio_Prevista", "Termino_Prevista"] else "Não especificada"
 
     # Remover linhas sem informações essenciais
-    df_merged.dropna(subset=["Empreendimento", "Etapa"], inplace=True)
+    if not df_merged.empty:
+        df_merged.dropna(subset=["Empreendimento", "Etapa"], inplace=True)
 
     return df_merged
-
-def criar_dados_exemplo():
-    dados = {
-        "UGB": ["UGB1", "UGB1", "UGB1", "UGB2", "UGB2", "UGB1"],
-        "Empreendimento": [
-            "Residencial Alfa",
-            "Residencial Alfa",
-            "Residencial Alfa",
-            "Condomínio Beta",
-            "Condomínio Beta",
-            "Projeto Gama",
-        ],
-        "Etapa": ["DM", "DOC", "ENG", "DM", "DOC", "DM"],
-        "FASE": [
-            "Planejamento",
-            "Execução",
-            "Execução",
-            "Planejamento",
-            "Execução",
-            "Planejamento",
-        ],
-        "Inicio_Prevista": pd.to_datetime(
-            [
-                "2024-02-01",
-                "2024-03-01",
-                "2024-04-15",
-                "2024-03-20",
-                "2024-05-01",
-                "2024-01-10",
-            ]
-        ),
-        "Termino_Prevista": pd.to_datetime(
-            [
-                "2024-02-28",
-                "2024-04-10",
-                "2024-05-30",
-                "2024-04-28",
-                "2024-06-15",
-                "2024-01-31",
-            ]
-        ),
-        "Inicio_Real": pd.to_datetime(
-            [
-                "2024-02-05",
-                "2024-03-03",
-                pd.NaT,
-                "2024-03-25",
-                "2024-05-05",
-                "2024-01-12",
-            ]
-        ),
-        "Termino_Real": pd.to_datetime(
-            [
-                "2024-03-02",
-                "2024-04-15",
-                pd.NaT,
-                "2024-05-05",
-                pd.NaT,
-                "2024-02-01",
-            ]
-        ),
-        "% concluído": [100, 100, 40, 100, 85, 100],
-    }
-    return pd.DataFrame(dados)
 
 # --- Interface do Streamlit ---
 

@@ -3,7 +3,7 @@ import smartsheet
 import os
 from dotenv import load_dotenv
 import sys
-from datetime import datetime
+from datetime import datetime 
 import numpy as np
 import re
 
@@ -226,7 +226,7 @@ def process_data(df):
 
         # 5. Converter tipos de dados
         print("\n🔄 Convertendo tipos de dados...")
-        date_columns = ["Terminar", "Iniciar"]
+        date_columns = ["Data de Fim", "Data de Início"]
         for col in date_columns:
             if col in df.columns:
                 df[col] = pd.to_datetime(df[col], errors='coerce', dayfirst=True)
