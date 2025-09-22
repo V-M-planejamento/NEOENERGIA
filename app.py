@@ -611,6 +611,72 @@ def load_data():
 if show_welcome_screen():
     st.stop()  # Para a execução do resto do app enquanto o popup está ativo
 
+# --- INÍCIO DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
+# CSS customizado
+st.markdown("""
+<style>
+    /* Altera APENAS os checkboxes dos multiselects */
+    div.stMultiSelect div[role="option"] input[type="checkbox"]:checked + div > div:first-child {
+        background-color: #4a0101 !important;
+        border-color: #4a0101 !important;
+    }
+    
+    /* Cor de fundo dos itens selecionados */
+    div.stMultiSelect [aria-selected="true"] {
+        background-color: #f8d7da !important;
+        color: #333 !important;
+        border-radius: 4px;
+    }
+    
+    /* Estilo do "×" de remoção */
+    div.stMultiSelect [aria-selected="true"]::after {
+        color: #4a0101 !important;
+        font-weight: bold;
+    }
+    
+    /* Espaçamento entre os filtros */
+    .stSidebar .stMultiSelect, .stSidebar .stSelectbox, .stSidebar .stRadio {
+        margin-bottom: 1rem;
+    }
+    
+    /* Estilo para botões de navegação */
+    .nav-button-container {
+        position: fixed;
+        right: 20px;
+        top: 20%;
+        transform: translateY(-20%);
+        z-index: 80;
+        background: white;
+        padding: 5px;
+        border-radius: 15px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+            
+    /* Estilo padrão */
+    .nav-link {
+        display: block;
+        background-color: #a6abb5;
+        color: white !important;
+        text-decoration: none !important;
+        border-radius: 10px;
+        padding: 5px 10px;
+        margin: 5px 0;
+        text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+            
+    /* Estilo para quando selecionado */
+    .nav-link:hover {
+        background-color: #ff4b4b; 
+        transform: scale(1.05);
+    }
+</style>
+""", unsafe_allow_html=True)
+# --- FIM DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
+
+
 # CSS customizado (mantido igual)
 st.markdown(
     """
@@ -800,19 +866,37 @@ if df_data is not None and not df_data.empty:
             st.sidebar.info("ℹ️ Todas as etapas estão 100% concluídas")
 
 
-
-    # Resto do código mantido igual...
     # Abas principais
     tab1, tab2 = st.tabs(["📈 Gráfico de Gantt – Previsto vs Real", "💾 Tabelão Horizontal"])
 #========================================================================================================
+# --- Início do Bloco de Código Fornecido ---
 
     with tab1:
+        # --- INÍCIO DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
+        # Botões de navegação simples usando HTML com âncoras
+        st.markdown("""
+        <div class="nav-button-container">
+            <a href="#inicio" class="nav-link">↑</a>
+            <a href="#visao-detalhada" class="nav-link">↓</a>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Âncora para o início
+        st.markdown('<div id="inicio"></div>', unsafe_allow_html=True)
+        # --- FIM DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
+
         st.subheader("Gantt Comparativo")
         if df_filtered.empty:
             st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
         else:
+            # Passa o parâmetro filtrar_nao_concluidas para a função de Gantt
             gerar_gantt(df_filtered.copy(), tipo_visualizacao)
-        
+
+        # --- INÍCIO DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
+        # Âncora para a tabela
+        st.markdown('<div id="visao-detalhada"></div>', unsafe_allow_html=True)
+        # --- FIM DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
+
         st.subheader("Visão Detalhada por Empreendimento")
         if df_filtered.empty:
             st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
