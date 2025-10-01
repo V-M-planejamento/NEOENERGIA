@@ -12,9 +12,10 @@ from datetime import datetime
 from matplotlib.legend_handler import HandlerTuple
 from dropdown_component import simple_multiselect_dropdown
 from popup import show_welcome_screen
-from st_aggrid import AgGrid
-from calculate_business_days import calculate_business_days
+import time 
 
+from calculate_business_days import calculate_business_days
+from fullscreen_image_component import create_fullscreen_image_viewer
 try:
     from processa_neo import tratar_e_retornar_dados_previstos
     from processa_neo_smartsheet import main as processar_smartsheet_main
@@ -23,6 +24,7 @@ except ImportError:
     tratar_e_retornar_dados_previstos = None
     processar_smartsheet_main = None
 
+ 
 # --- Configurações de Estilo ---
 class StyleConfig:
     LARGURA_GANTT = 10
@@ -592,8 +594,18 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
     )
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])
-    st.pyplot(figura)
-    plt.close(figura)
+
+    # CORREÇÃO: Definir unique_key apropriadamente
+    if empreendimento is not None:
+        unique_key = empreendimento
+    else:
+        # Se não há empreendimento específico, criar uma chave única
+        unique_key = f"gantt_{int(time.time() * 1000)}"
+
+    create_fullscreen_image_viewer(
+        figure=figura, 
+        empreendimento=unique_key
+    )
 
 def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
     if df.empty:
@@ -807,7 +819,14 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
             # --- FIM DA MODIFICAÇÃO ---
             
     if not rotulo_para_posicao:
-        st.pyplot(figura)
+           # CORREÇÃO SIMPLIFICADA
+        unique_key = f"empty_{int(time.time() * 1000)}"
+        create_fullscreen_image_viewer(
+            figura, 
+            show_regular=True, 
+            button_text=f"🔍 Visualizar {empreendimento.replace('CONDOMINIO ', '')} em Tela Cheia",
+            empreendimento=unique_key
+        )
         plt.close(figura)
         return
 
@@ -879,7 +898,22 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
     )
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])
-    st.pyplot(figura)
+# CORREÇÃO: Definir unique_key apropriadamente antes de usar
+    if empreendimento is not None:
+        unique_key = empreendimento
+    else:
+        # Se não há empreendimento específico, criar uma chave única
+        if not df.empty and 'Empreendimento' in df.columns:
+            unique_key = df['Empreendimento'].iloc[0] if len(df['Empreendimento'].unique()) == 1 else f"gantt_{int(time.time() * 1000)}"
+        else:
+            unique_key = f"gantt_{int(time.time() * 1000)}"
+
+    create_fullscreen_image_viewer(
+    figure=figura, 
+    empreendimento=unique_key
+
+    )
+
     plt.close(figura)
 
 
