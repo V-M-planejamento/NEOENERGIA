@@ -1326,7 +1326,7 @@ if df_data is not None and not df_data.empty:
 
 
     # Abas principais
-    tab1, tab2 = st.tabs(["📈 Gráfico de Gantt – Previsto vs Real", "💾 Tabelão Horizontal"])
+    tab1, tab2 = st.tabs(["Gantt – Previsto vs Real", "Tabelão Horizontal"])
 #========================================================================================================
 # --- Início do Bloco de Código Fornecido ---
 

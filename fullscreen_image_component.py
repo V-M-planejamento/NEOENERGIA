@@ -5,20 +5,14 @@ import io
 import matplotlib.pyplot as plt
 from typing import Optional
 
-def create_fullscreen_image_viewer(figure: plt.Figure,
+def create_fullscreen_image_viewer(figure: plt.Figure, 
                                          empreendimento: Optional[str] = None) -> None:
     """
     Renderiza um gráfico Matplotlib diretamente no HTML com um botão de tela cheia
-    posicionado corretamente no canto superior direito.
-    
-    CORREÇÃO: Altura fixa para evitar alteração de espaçamento.
-
-    Args:
-        figure (plt.Figure): A figura Matplotlib a ser exibida.
-        empreendimento (Optional[str]): Um identificador único para o componente.
+    BOTÃO MENOR E REPOSICIONADO
     """
     
-    # --- Etapa 1: Converter a figura para imagem Base64 ---
+    # --- Converter a figura para imagem Base64 ---
     img_buffer_display = io.BytesIO()
     figure.savefig(img_buffer_display, format='png', dpi=150, bbox_inches='tight')
     img_base64_display = base64.b64encode(img_buffer_display.getvalue()).decode('utf-8')
@@ -29,22 +23,24 @@ def create_fullscreen_image_viewer(figure: plt.Figure,
     
     unique_id = f"viewer-btn-{empreendimento if empreendimento else hash(img_base64_display)}"
 
-    # --- Etapa 2: Criar o HTML com altura FIXA ---
+    # --- HTML com botão menor e reposicionado ---
     html_content = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            /* Container principal com altura FIXA */
+            /* Container principal */
             .gantt-container {{
                 position: relative;
                 width: 100%;
-                height: 500px; /* ALTURA FIXA */
-                margin: 0 auto;
+                height: 1200px;
+                margin: 0;
                 background-color: white;
-                border-radius: 8px;
                 overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }}
             
             /* Container da imagem */
@@ -57,45 +53,44 @@ def create_fullscreen_image_viewer(figure: plt.Figure,
                 background-color: white;
             }}
             
-            /* Imagem responsiva */
+            /* Imagem ocupa todo o espaço */
             .gantt-image {{
-                max-width: 100%;
-                max-height: 100%;
-                width: auto;
-                height: auto;
+                width: 100%;
+                height: 100%;
                 object-fit: contain;
             }}
 
-            /* Botão de tela cheia */
+            /* Botão de tela cheia MENOR e mais para o canto */
             .fullscreen-btn {{
                 position: absolute;
-                top: 10px;
-                right: 10px;
-                background-color: #FFFFFF;
+                top: 120px; /* MAIS PRÓXIMO DA BORDA SUPERIOR */
+                right: 50px; /* MAIS PRÓXIMO DA BORDA DIREITA */
+                background-color: rgba(255,255,255,0.85);
                 color: #31333F;
-                border: 1px solid #E6EAF1;
-                width: 32px;
-                height: 32px;
-                border-radius: 8px;
+                border: 1px solid #CCCCCC;
+                width: 28px; /* MENOR */
+                height: 28px; /* MENOR */
+                border-radius: 4px;
                 cursor: pointer;
-                font-size: 18px;
-                font-weight: bold;
+                font-size: 14px; /* FONTE MENOR */
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 transition: all 0.2s ease;
                 z-index: 10;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             }}
             
             .fullscreen-btn:hover {{
                 border-color: #FF4B4B;
                 color: #FF4B4B;
+                background-color: white;
                 transform: scale(1.05);
+                box-shadow: 0 2px 5px rgba(255,75,75,0.3);
             }}
         </style>
     </head>
-    <body>
+    <body style="margin: 0; padding: 0;">
         <div class="gantt-container">
             <div class="image-wrapper">
                 <img src="data:image/png;base64,{img_base64_display}" class="gantt-image" alt="Gráfico Gantt">
@@ -151,10 +146,10 @@ def create_fullscreen_image_viewer(figure: plt.Figure,
                     }}
                 }}
 
-                loadCss('https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css' );
+                loadCss('https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css');
 
                 button.addEventListener('click', function() {{
-                    loadScript('https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js', function( ) {{
+                    loadScript('https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js', function() {{
                         const tempImage = parentDoc.createElement('img');
                         tempImage.src = viewerImgSrc;
                         tempImage.style.display = 'none';
@@ -189,10 +184,7 @@ def create_fullscreen_image_viewer(figure: plt.Figure,
     </html>
     """
     
-    # Altura FIXA para todos os gráficos - isso resolve o problema de espaçamento
-    FIXED_HEIGHT = 505
-    
-    # Renderizar com altura FIXA
+    FIXED_HEIGHT = 1210
     components.html(html_content, height=FIXED_HEIGHT, scrolling=False)
 
 # --- Exemplo de uso ---
