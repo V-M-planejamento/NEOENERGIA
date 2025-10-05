@@ -9,10 +9,13 @@ from matplotlib.patches import Patch, Rectangle
 import matplotlib.dates as mdates
 import matplotlib.gridspec as gridspec
 from datetime import datetime
+from typing import Optional, List, Dict, Any
+import time 
+import base64
+import io
 from matplotlib.legend_handler import HandlerTuple
 from dropdown_component import simple_multiselect_dropdown
 from popup import show_welcome_screen
-import time 
 
 from calculate_business_days import calculate_business_days
 from fullscreen_image_component import create_fullscreen_image_viewer
@@ -312,8 +315,9 @@ def gerar_gantt(df, tipo_visualizacao="Ambos", filtrar_nao_concluidas=False):
         st.warning("Sem dados disponíveis para exibir o Gantt.")
         return
 
-    plt.rcParams['figure.dpi'] = 150
-    plt.rcParams['savefig.dpi'] = 150
+    # Configurações de DPI movidas para o savefig para maior controle
+    # plt.rcParams["figure.dpi"] = 150
+    # plt.rcParams["savefig.dpi"] = 150
 
     df_original_completo = df.copy()
 
@@ -348,23 +352,60 @@ def gerar_gantt(df, tipo_visualizacao="Ambos", filtrar_nao_concluidas=False):
     num_empreendimentos = df['Empreendimento'].nunique()
     num_etapas = df['Etapa'].nunique()
 
+    # Lista para armazenar todos os gráficos gerados para o ViewerJS
+    all_charts_for_viewer = []
+    current_chart_index = 0
+    chart_counter = 0
+
     # REGRA ESPECÍFICA: Quando há múltiplos empreendimentos e apenas uma etapa
     if num_empreendimentos > 1 and num_etapas == 1:
         # Para este caso especial, geramos apenas UM gráfico comparativo
-        gerar_gantt_comparativo(df, tipo_visualizacao, df_original_completo)
+        fig, unique_key = gerar_gantt_comparativo(df, tipo_visualizacao, df_original_completo)
+        if fig:
+            img_buffer = io.BytesIO()
+            fig.savefig(img_buffer, format="png", dpi=300, bbox_inches="tight", facecolor="white")
+            img_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
+            all_charts_for_viewer.append({"id": unique_key, "src": f"data:image/png;base64,{img_base64}"})
+            plt.close(fig)
+
     elif num_empreendimentos > 1 and num_etapas > 1:
         # Caso tradicional: múltiplos empreendimentos com múltiplas etapas
         for empreendimento in empreendimentos_ordenados:
             if empreendimento in df['Empreendimento'].unique():
-                # REMOVIDO: st.subheader(f"Empreendimento: {empreendimento.replace('CONDOMINIO ', '')}")
                 df_filtrado = df[df['Empreendimento'] == empreendimento]
                 df_original_filtrado = df_original_completo[df_original_completo['Empreendimento'] == empreendimento]
-                
-                gerar_gantt_individual(df_filtrado, tipo_visualizacao, df_original=df_original_filtrado)
-                # REMOVIDO: st.markdown("---")
+                fig, unique_key = gerar_gantt_individual(df_filtrado, tipo_visualizacao, df_original=df_original_filtrado, empreendimento=empreendimento)
+                if fig:
+                    img_buffer = io.BytesIO()
+                    fig.savefig(img_buffer, format="png", dpi=300, bbox_inches="tight", facecolor="white")
+                    img_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
+                    all_charts_for_viewer.append({"id": unique_key, "src": f"data:image/png;base64,{img_base64}"})
+                    plt.close(fig)
+
     else:
         # Caso único empreendimento (com uma ou múltiplas etapas)
-        gerar_gantt_individual(df, tipo_visualizacao, df_original=df_original_completo)
+        fig, unique_key = gerar_gantt_individual(df, tipo_visualizacao, df_original=df_original_completo)
+        if fig:
+            img_buffer = io.BytesIO()
+            fig.savefig(img_buffer, format="png", dpi=300, bbox_inches="tight", facecolor="white")
+            img_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
+            all_charts_for_viewer.append({"id": unique_key, "src": f"data:image/png;base64,{img_base64}"})
+            plt.close(fig)
+
+    # Se houver gráficos para exibir, itere sobre eles para exibição e prepare o visualizador de tela cheia
+    if all_charts_for_viewer:
+        for idx, chart_data in enumerate(all_charts_for_viewer):
+
+            # Adicionar o botão de tela cheia para cada gráfico
+            create_fullscreen_image_viewer(
+                figure=None, # Não precisamos de uma figura matplotlib aqui, pois já exibimos a imagem
+                empreendimento=chart_data["id"], 
+                all_filtered_charts_data=all_charts_for_viewer,
+                current_chart_index=idx
+            )
+
+    # Certifique-se de que todas as figuras matplotlib criadas sejam fechadas para liberar memória
+    # plt.close("all") # Removido pois as figuras já são fechadas individualmente
 
 def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
     """
@@ -595,19 +636,13 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])
 
-    # CORREÇÃO: Definir unique_key apropriadamente
-    if empreendimento is not None:
-        unique_key = empreendimento
-    else:
-        # Se não há empreendimento específico, criar uma chave única
-        unique_key = f"gantt_{int(time.time() * 1000)}"
+    # Criar chave única para o gráfico
+    etapa_unica = df['Etapa'].iloc[0] if 'Etapa' in df.columns and not df.empty else "comparativo"
+    unique_key = f"Comparativo - {etapa_unica}"
+    
+    return figura, unique_key
 
-    create_fullscreen_image_viewer(
-        figure=figura, 
-        empreendimento=unique_key
-    )
-
-def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
+def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None, empreendimento=None):
     if df.empty:
         return
 
@@ -898,23 +933,16 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
     )
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])
-# CORREÇÃO: Definir unique_key apropriadamente antes de usar
+    
+    # Definir unique_key apropriadamente
     if empreendimento is not None:
         unique_key = empreendimento
+    elif not df.empty and 'Empreendimento' in df.columns:
+        unique_key = df['Empreendimento'].iloc[0] if len(df['Empreendimento'].unique()) == 1 else f"gantt_{int(time.time() * 1000)}"
     else:
-        # Se não há empreendimento específico, criar uma chave única
-        if not df.empty and 'Empreendimento' in df.columns:
-            unique_key = df['Empreendimento'].iloc[0] if len(df['Empreendimento'].unique()) == 1 else f"gantt_{int(time.time() * 1000)}"
-        else:
-            unique_key = f"gantt_{int(time.time() * 1000)}"
+        unique_key = f"gantt_{int(time.time() * 1000)}"
 
-    create_fullscreen_image_viewer(
-    figure=figura, 
-    empreendimento=unique_key
-
-    )
-
-    plt.close(figura)
+    return figura, unique_key
 
 
 #========================================================================================================
