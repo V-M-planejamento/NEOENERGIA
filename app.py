@@ -9,7 +9,6 @@ from matplotlib.legend_handler import HandlerTuple
 import matplotlib.dates as mdates
 import matplotlib.gridspec as gridspec
 from datetime import datetime, timedelta
-import holidays
 from dateutil.relativedelta import relativedelta # applyFiltersAndRedraw
 import traceback
 import streamlit.components.v1 as components  
