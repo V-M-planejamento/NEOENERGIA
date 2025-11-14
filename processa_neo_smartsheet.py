@@ -315,38 +315,56 @@ def salvar_resultados(df):
         return False
 
 def main():
-    print("\n" + "="*60)
-    print(" INÍCIO DO PROCESSAMENTO ".center(60, "="))
-    print("="*60)
+    """
+    Função principal que processa dados do Smartsheet
+    RETORNA: DataFrame com dados processados ou DataFrame vazio em caso de erro
+    """
+    try:
+        print("\n" + "="*60)
+        print(" INÍCIO DO PROCESSAMENTO ".center(60, "="))
+        print("="*60)
 
-    token = carregar_configuracao()
-    if not token:
-        sys.exit(1)
+        token = carregar_configuracao()
+        if not token:
+            print("❌ Falha ao carregar configuração")
+            return pd.DataFrame()
 
-    client = setup_smartsheet_client(token)
-    if not client:
-        sys.exit(1)
+        client = setup_smartsheet_client(token)
+        if not client:
+            print("❌ Falha ao configurar cliente Smartsheet")
+            return pd.DataFrame()
 
-    sheet_id = get_sheet_id(client, SHEET_NAME)
-    if not sheet_id:
-        sys.exit(1)
+        sheet_id = get_sheet_id(client, SHEET_NAME)
+        if not sheet_id:
+            print("❌ Falha ao obter ID da planilha")
+            return pd.DataFrame()
 
-    raw_data = get_sheet_data(client, sheet_id)
-    if raw_data.empty:
-        print("❌ Nenhum dado obtido da planilha")
-        sys.exit(1)
+        raw_data = get_sheet_data(client, sheet_id)
+        if raw_data.empty:
+            print("❌ Nenhum dado obtido da planilha")
+            return pd.DataFrame()
 
-    processed_data = process_data(raw_data)
-    if processed_data.empty:
-        print("❌ Nenhum dado restante após processamento")
-        sys.exit(1)
+        processed_data = process_data(raw_data)
+        if processed_data.empty:
+            print("❌ Nenhum dado restante após processamento")
+            return pd.DataFrame()
 
-    if not salvar_resultados(processed_data):
-        sys.exit(1)
+        if not salvar_resultados(processed_data):
+            print("❌ Falha ao salvar resultados")
+            return pd.DataFrame()
 
-    print("\n" + "="*60)
-    print(" PROCESSAMENTO CONCLUÍDO ".center(60, "="))
-    print("="*60)
+        print("\n" + "="*60)
+        print(" PROCESSAMENTO CONCLUÍDO ".center(60, "="))
+        print("="*60)
+        
+        # *** CORREÇÃO PRINCIPAL: SEMPRE retornar um DataFrame ***
+        return processed_data
+
+    except Exception as e:
+        print(f"\n❌ ERRO CRÍTICO NA FUNÇÃO MAIN: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return pd.DataFrame()  # *** SEMPRE retornar DataFrame, mesmo em caso de erro ***
 
 if __name__ == "__main__":
     main()
