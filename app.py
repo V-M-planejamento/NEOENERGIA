@@ -9,7 +9,7 @@ from matplotlib.legend_handler import HandlerTuple
 import matplotlib.dates as mdates
 import matplotlib.gridspec as gridspec
 from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta # applyFiltersAndRedraw
+from dateutil.relativedelta import relativedelta # meta
 import traceback
 import streamlit.components.v1 as components  
 import json
@@ -189,7 +189,7 @@ def calcular_dias_uteis_novo(data_inicio, data_fim):
     return np.busday_count(data_inicio.date(), data_fim.date()) * sinal
 
 def obter_data_meta_assinatura_novo(df_empreendimento):
-    df_meta = df_empreendimento[df_empreendimento["Etapa"] == "DEMANDA MÍNIMA"]
+    df_meta = df_empreendimento[df_empreendimento["Etapa"] == "ENTREGA"]
     if df_meta.empty:
         return None
     for col in ["Inicio_Prevista", "Inicio_Real", "Termino_Prevista", "Termino_Real"]:
@@ -819,8 +819,8 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     .today-line {{ position: absolute; top: 60px; bottom: 0; width: 1px; background-color: #fdf1f1; z-index: 5; box-shadow: 0 0 1px rgba(229, 62, 62, 0.6); }}
                     .month-divider {{ position: absolute; top: 60px; bottom: 0; width: 1px; background-color: #fcf6f6; z-index: 4; pointer-events: none; }}
                     .month-divider.first {{ background-color: #eeeeee; width: 1px; }}
-                    .meta-line {{ position: absolute; top: 60px; bottom: 0; width: 2px; border-left: 2px dashed #8e44ad; z-index: 5; box-shadow: 0 0 4px rgba(142, 68, 173, 0.6); }}
-                    .meta-line-label {{ position: absolute; top: 65px; background-color: #8e44ad; color: white; padding: 2px 5px; border-radius: 4px; font-size: 9px; font-weight: 600; white-space: nowrap; z-index: 8; transform: translateX(-50%); }}
+                    .meta-line {{ position: absolute; top: 60px; bottom: 0; width: 2px; border-left: 2px dashed #6B6B6B; z-index: 5; box-shadow: 0 0 1px rgba(142, 68, 173, 0.6); }}
+                    .meta-line-label {{ position: absolute; top: 65px; background-color: #3a3a3a; color: white; padding: 2px 5px; border-radius: 4px; font-size: 9px; font-weight: 600; white-space: nowrap; z-index: 8; transform: translateX(-50%); }}
                     .gantt-chart-content, .gantt-sidebar-content {{
                         scrollbar-width: thin;
                         scrollbar-color: transparent transparent;
@@ -1669,7 +1669,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             metaLabel.style.left = `${{offset}}px`; 
                             metaLine.style.display = 'block'; 
                             metaLabel.style.display = 'block'; 
-                            metaLabel.textContent = `Meta: ${{metaDate.toLocaleDateString('pt-BR', {{day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'UTC'}})}}`; 
+                            metaLabel.textContent = `ENTREGA: ${{metaDate.toLocaleDateString('pt-BR', {{day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'UTC'}})}}`; 
                         }} else {{ 
                             metaLine.style.display = 'none'; 
                             metaLabel.style.display = 'none'; 
