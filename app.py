@@ -150,7 +150,7 @@ class StyleConfig:
     CORES_POR_SETOR = {
         "ENG.PROD": {"previsto": "#ffe1af", "real": "#be5900"},
         "INFRA": {"previsto": "#b9ddfc", "real": "#0262B0"},
-        "LEG.": {"previsto": "#ebc7ef", "real": "#9A02AB"},
+        "LEG.": {"previsto": "#ebc7ef", "real": "#A503B8"},
         "ORÇ.": {"previsto": "#f8cd7c", "real": "#916931"},
         "PROD.": {"previsto": "#bdbdbd", "real": "#515050"},
         "SUP.": {"previsto": "#c6e7c8", "real": "#108318"}
