@@ -9,7 +9,7 @@ from matplotlib.legend_handler import HandlerTuple
 import matplotlib.dates as mdates
 import matplotlib.gridspec as gridspec
 from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta # meta
+from dateutil.relativedelta import relativedelta #abreviar_nome
 import traceback
 import streamlit.components.v1 as components  
 import json
@@ -95,6 +95,22 @@ mapeamento_etapas_usuario = {}
 
 mapeamento_reverso = {v: k for k, v in mapeamento_etapas_usuario.items()}
 
+sigla_para_nome_completo_emp = {
+    "AMO-F1": "CONDOMINIO AMOREIRAS-F1",
+    "CER-F1": "RECANTO DAS CEREJEIRAS-F1",
+    "FIG": "RECANTO DAS FIGUEIRAS",
+    "NASSAU":"NASSAU GARDEN",
+    "OLI":"CONDOMINIO OLIVEIRAS",
+    "PIT":"RECANTO DAS PITANGUEIRAS",
+    "VID":"CONDOMINIO VIDEIRAS",
+    "J.SER 1":"JARDIM DA SERRA-01",
+    "HOR":"JARDIM DAS HORTENSIAS",
+    "MONJ":"JARDIM MONJOPE",
+    "JA":"JARDIM DOS ARCOS",
+    "BA-5":"BARRINHA (ETAPA 5)",
+    "JD-EUCA":"JARDIM DOS EUCALIPTOS"
+}
+
 sigla_para_nome_completo = {
     "PL-ER-E-IP": "PL-ER-E-IP",
     "APROV-ER-(NEO)": "APROV-ER-(NEO)", 
@@ -133,11 +149,11 @@ for setor, etapas in SETOR.items():
 class StyleConfig:
     CORES_POR_SETOR = {
         "ENG.PROD": {"previsto": "#ffe1af", "real": "#be5900"},
-        "INFRA": {"previsto": "#b9ddfc", "real": "#003C6C"},
-        "LEG.": {"previsto": "#ebc7ef", "real": "#63006E"},
-        "ORÇ.": {"previsto": "#f8cd7c", "real": "#6C3F00"},
-        "PROD.": {"previsto": "#bdbdbd", "real": "#3a3a3a"},
-        "SUP.": {"previsto": "#c6e7c8", "real": "#014606"}
+        "INFRA": {"previsto": "#b9ddfc", "real": "#0262B0"},
+        "LEG.": {"previsto": "#ebc7ef", "real": "#9A02AB"},
+        "ORÇ.": {"previsto": "#f8cd7c", "real": "#916931"},
+        "PROD.": {"previsto": "#bdbdbd", "real": "#515050"},
+        "SUP.": {"previsto": "#c6e7c8", "real": "#108318"}
     }
 
     @classmethod
@@ -344,13 +360,27 @@ def converter_dados_para_gantt(df):
     return gantt_data
 # --- Funções Utilitárias ---
 def abreviar_nome(nome):
+    """
+    Função para abreviar nomes muito longos, mas mantendo a formatação original
+    quando possível.
+    """
     if pd.isna(nome):
         return nome
-    nome = nome.replace("CONDOMINIO ", "")
-    palavras = nome.split()
+    
+    nome_str = str(nome)
+    
+    # Se o nome já for curto (menos de 20 caracteres), manter como está
+    if len(nome_str) <= 20:
+        return nome_str
+    
+    # Caso contrário, aplicar a abreviação original
+    nome_sem_condominio = nome_str.replace("CONDOMINIO ", "")
+    palavras = nome_sem_condominio.split()
     if len(palavras) > 3:
-        nome = " ".join(palavras[:3])
-    return nome
+        nome_abreviado = " ".join(palavras[:3])
+        return nome_abreviado
+    
+    return nome_str
 
 def converter_porcentagem(valor):
     if pd.isna(valor) or valor == "":
@@ -469,14 +499,28 @@ def obter_data_meta_assinatura(df_original, empreendimento):
         if col in df_meta.columns and pd.notna(df_meta[col].iloc[0]): return df_meta[col].iloc[0]
     return pd.Timestamp.max
 
+def converter_nome_empreendimento(nome):
+    """
+    Converte siglas de empreendimentos para nomes completos.
+    """
+    if pd.isna(nome):
+        return "Não especificado"
+    
+    nome_str = str(nome).strip()
+    return sigla_para_nome_completo_emp.get(nome_str, nome_str)
+
 def criar_ordenacao_empreendimentos(df_original):
     """
     Cria uma lista ordenada dos nomes COMPLETOS dos empreendimentos
     com base na data da meta de assinatura (DEMANDA MÍNIMA).
     """
-    # Use o nome COMPLETO como chave no dicionário
-    empreendimentos_meta = {emp: obter_data_meta_assinatura(df_original, emp)
-                           for emp in df_original["Empreendimento"].unique()}
+    # Aplica conversão aos nomes antes de criar a ordenação
+    df_convertido = df_original.copy()
+    df_convertido["Empreendimento"] = df_convertido["Empreendimento"].apply(converter_nome_empreendimento)
+    
+    empreendimentos_meta = {emp: obter_data_meta_assinatura(df_convertido, emp)
+                           for emp in df_convertido["Empreendimento"].unique()}
+    
     # Retorna a lista de nomes COMPLETOS ordenados pela data meta
     return sorted(empreendimentos_meta.keys(), key=empreendimentos_meta.get)
 
@@ -632,15 +676,6 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
         if not gantt_data_base:
             st.warning("Nenhum dado disponível para exibir.")
             return
-            
-        # *** NOVO: GERAÇÃO DO RELATÓRIO TXT ***
-        relatorio_txt = gerar_relatorio_txt(gantt_data_base)
-        st.download_button(
-            label="Baixar Relatório TXT de Datas e Etapas",
-            data=relatorio_txt,
-            file_name="relatorio_datas_etapas.txt",
-            mime="text/plain"
-        )
 
         # --- Prepara opções de filtro ---
         filter_options = {
@@ -1669,7 +1704,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             metaLabel.style.left = `${{offset}}px`; 
                             metaLine.style.display = 'block'; 
                             metaLabel.style.display = 'block'; 
-                            metaLabel.textContent = `ENTREGA: ${{metaDate.toLocaleDateString('pt-BR', {{day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'UTC'}})}}`; 
+                            metaLabel.textContent = `Entrega Prev.: ${{metaDate.toLocaleDateString('pt-BR', {{day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'UTC'}})}}`; 
                         }} else {{ 
                             metaLine.style.display = 'none'; 
                             metaLabel.style.display = 'none'; 
@@ -2068,7 +2103,55 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
         """
         # Exibe o componente HTML no Streamlit
         components.html(gantt_html, height=altura_gantt, scrolling=True)
+        # *** GERAÇÃO DO RELATÓRIO TXT ***
+        relatorio_txt = gerar_relatorio_txt(gantt_data_base)
+
+        col1, col2 = st.columns([5, 1])
+        with col2:
+            st.download_button(
+                label="↓",
+                data=relatorio_txt,
+                file_name="relatorio_etapas.txt",
+                mime="text/plain",
+                help="Download do relatório",
+                use_container_width=True
+            )
+
         st.markdown("---")
+
+        # CSS para botão circular com largura fixa
+        st.markdown("""
+        <style>
+            div[data-testid="stDownloadButton"] {
+                width: 60px !important;
+                min-width: 60px !important;
+                max-width: 60px !important;
+                margin-left: auto !important;  /* Isso alinha à direita */
+            }
+            div[data-testid="stDownloadButton"] > button {
+                background: white !important;
+                color: #6c757d !important;
+                border: 2px solid #e9ecef !important;
+                border-radius: 50% !important;
+                padding: 0.6rem !important;
+                font-size: 20px !important;
+                font-weight: bold !important;
+                height: 50px !important;
+                width: 50px !important;
+                min-width: 50px !important;
+                max-width: 50px !important;
+                margin: 0 auto !important;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+            }
+            div[data-testid="stDownloadButton"] > button:hover {
+                background: #f8f9fa !important;
+                border-color: #007bff !important;
+                color: #007bff !important;
+                transform: translateY(-2px) !important;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+            }
+        </style>
+        """, unsafe_allow_html=True)
         
 # --- *** FUNÇÃO gerar_gantt_consolidado MODIFICADA *** ---
 def converter_dados_para_gantt_consolidado(df, etapa_selecionada):
@@ -3344,6 +3427,9 @@ def load_data():
                 else:
                     df_real["% concluído"] = 0.0
                 
+                # NOVO: Converter nomes dos empreendimentos para nomes completos
+                df_real["Empreendimento"] = df_real["Empreendimento"].apply(converter_nome_empreendimento)
+                
     except Exception as e:
         st.error(f"❌ Erro ao carregar dados reais: {e}")
         df_real = pd.DataFrame()
@@ -3395,6 +3481,9 @@ def load_data():
                 for col in ["Inicio_Prevista", "Termino_Prevista"]:
                     if col in df_previsto.columns:
                         df_previsto[col] = pd.to_datetime(df_previsto[col], errors='coerce')
+                
+                # NOVO: Converter nomes dos empreendimentos para nomes completos
+                df_previsto["Empreendimento"] = df_previsto["Empreendimento"].apply(converter_nome_empreendimento)
                 
     except Exception as e:
         st.error(f"❌ Erro ao carregar dados previstos: {e}")
@@ -3497,6 +3586,9 @@ def load_data():
     if linhas_iniciais != linhas_finais:
         st.warning(f"🗑️ Removidas {linhas_iniciais - linhas_finais} linhas inválidas")
     
+    # NOVO: Garantir que todos os nomes de empreendimentos estão convertidos
+    df_merged["Empreendimento"] = df_merged["Empreendimento"].apply(converter_nome_empreendimento)
+    
     return df_merged
 
 
@@ -3518,14 +3610,23 @@ def criar_dados_exemplo():
 
 @st.cache_data
 def get_unique_values(df, column):
-    return sorted(df[column].dropna().unique().tolist())
+    if column == "Empreendimento":
+        # Para empreendimentos, garantir que estamos usando os nomes convertidos
+        df_temp = df.copy()
+        df_temp[column] = df_temp[column].apply(converter_nome_empreendimento)
+        return sorted(df_temp[column].dropna().unique().tolist())
+    else:
+        return sorted(df[column].dropna().unique().tolist())
 
 @st.cache_data
 def filter_dataframe(df, ugb_filter, emp_filter, grupo_filter, setor_filter):
     if not ugb_filter:
         return df.iloc[0:0]
 
-    df_filtered = df[df["UGB"].isin(ugb_filter)]
+    # Aplicar conversão aos nomes dos empreendimentos
+    df_filtered = df.copy()
+    df_filtered["Empreendimento"] = df_filtered["Empreendimento"].apply(converter_nome_empreendimento)
+    df_filtered = df_filtered[df_filtered["UGB"].isin(ugb_filter)]
     
     # Aplicar filtros apenas se não estiverem vazios
     if emp_filter and len(emp_filter) > 0:
