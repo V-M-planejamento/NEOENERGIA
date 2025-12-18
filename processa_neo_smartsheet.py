@@ -3,6 +3,10 @@ import smartsheet
 import os
 from dotenv import load_dotenv
 import sys
+try:
+    import streamlit as st
+except ImportError:
+    st = None
 from datetime import datetime 
 import numpy as np
 import re
@@ -12,55 +16,48 @@ SHEET_NAME = "ACOMPANHAMENTOS NEOERNERGIA"
 OUTPUT_CSV = "Dados Reais Tratados e Ordenados.csv"
 
 def carregar_configuracao():
-    """Carrega as configurações e verifica o ambiente"""
-    try:
-        if not os.path.exists('.env'):
-            raise FileNotFoundError("Arquivo .env não encontrado")
-        
-        load_dotenv()
-        token = os.getenv("SMARTSHEET_ACCESS_TOKEN")
-        
-        # 2. Se não achou, tenta carregar dos segredos do Streamlit
-        if not token:
-            try:
-                import streamlit as st
-                
-                # Debug: Listar chaves disponíveis para ajudar no diagnóstico
-                try:
-                    available_keys = list(st.secrets.keys())
-                    print(f"DEBUG: Chaves encontradas em st.secrets: {available_keys}")
-                except:
-                    print("DEBUG: Não foi possível listar chaves de st.secrets")
+    """
+    Carrega as configurações seguindo a prioridade:
+    1. Streamlit Secrets (st.secrets)
+    2. Variáveis de Ambiente (os.getenv)
+    3. Arquivo .env
+    """
+    token = None
+    
+    # 1. Tentar carregar do Streamlit Secrets
+    if st is not None:
+        try:
+            token = st.secrets.get("SMARTSHEET_ACCESS_TOKEN")
+            if token:
+                print("Configuração carregada via Streamlit Secrets")
+                return token
+        except (FileNotFoundError, AttributeError):
+            pass # Secrets não configurado ou rodando fora do Streamlit
 
-                # Verifica se existe nos secrets (suporta acesso direto)
-                if "SMARTSHEET_ACCESS_TOKEN" in st.secrets:
-                    token = st.secrets["SMARTSHEET_ACCESS_TOKEN"]
-                    print("INFO: Token carregado via Streamlit Secrets (raiz).")
-                
-                # Fallback: Tenta procurar dentro de seções comuns (ex: [smartsheet])
-                elif "smartsheet" in st.secrets and "access_token" in st.secrets["smartsheet"]:
-                    token = st.secrets["smartsheet"]["access_token"]
-                    print("INFO: Token carregado via Streamlit Secrets (seção [smartsheet]).")
-                    
-                elif "env" in st.secrets and "SMARTSHEET_ACCESS_TOKEN" in st.secrets["env"]:
-                    token = st.secrets["env"]["SMARTSHEET_ACCESS_TOKEN"]
-                    print("INFO: Token carregado via Streamlit Secrets (seção [env]).")
-                    
-            except Exception as e:
-                # Se não estiver rodando no Streamlit ou secrets não configurados
-                print(f"AVISO: Falha ao tentar ler Streamlit Secrets: {e}")
-                pass
-                
-        if token:
-            return token
-        
-        print("\nERRO DE CONFIGURAÇÃO: Token 'SMARTSHEET_ACCESS_TOKEN' não encontrado nem no .env nem no st.secrets.")
-        return None
-    except Exception as e:
-        print(f"\nERRO DE CONFIGURAÇÃO: {str(e)}")
-        print("\nPor favor, crie um arquivo .env na mesma pasta do script com:")
-        print("SMARTSHEET_ACCESS_TOKEN=seu_token_aqui\n")
-        return None
+    # 2. Tentar carregar de Variáveis de Ambiente
+    token = os.getenv("SMARTSHEET_ACCESS_TOKEN")
+    if token:
+        # print("Configuração carregada via Variáveis de Ambiente") # Opcional: evitar logar se não quiser
+        return token
+
+    # 3. Tentar carregar do .env (apenas se existir)
+    if os.path.exists('.env'):
+        try:
+            load_dotenv()
+            token = os.getenv("SMARTSHEET_ACCESS_TOKEN")
+            if token:
+                print("Configuração carregada via arquivo .env")
+                return token
+        except Exception as e:
+            print(f"Erro ao ler .env: {e}")
+
+    # Se chegou aqui, não encontrou o token
+    print("\nERRO DE CONFIGURAÇÃO: Token do Smartsheet não encontrado.")
+    print("Certifique-se de configurar 'SMARTSHEET_ACCESS_TOKEN' em:")
+    print("1. .streamlit/secrets.toml (se rodando localmente no Streamlit)")
+    print("2. Secrets do Cloud (se rodando na nuvem)")
+    print("3. Variáveis de ambiente ou arquivo .env")
+    return None
 
 def setup_smartsheet_client(token):
     """Configura o cliente Smartsheet"""
