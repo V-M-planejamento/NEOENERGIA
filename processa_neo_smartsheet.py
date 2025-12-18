@@ -20,11 +20,42 @@ def carregar_configuracao():
         load_dotenv()
         token = os.getenv("SMARTSHEET_ACCESS_TOKEN")
         
+        # 2. Se não achou, tenta carregar dos segredos do Streamlit
         if not token:
-            raise ValueError("Token não encontrado no arquivo .env")
+            try:
+                import streamlit as st
+                
+                # Debug: Listar chaves disponíveis para ajudar no diagnóstico
+                try:
+                    available_keys = list(st.secrets.keys())
+                    print(f"DEBUG: Chaves encontradas em st.secrets: {available_keys}")
+                except:
+                    print("DEBUG: Não foi possível listar chaves de st.secrets")
+
+                # Verifica se existe nos secrets (suporta acesso direto)
+                if "SMARTSHEET_ACCESS_TOKEN" in st.secrets:
+                    token = st.secrets["SMARTSHEET_ACCESS_TOKEN"]
+                    print("INFO: Token carregado via Streamlit Secrets (raiz).")
+                
+                # Fallback: Tenta procurar dentro de seções comuns (ex: [smartsheet])
+                elif "smartsheet" in st.secrets and "access_token" in st.secrets["smartsheet"]:
+                    token = st.secrets["smartsheet"]["access_token"]
+                    print("INFO: Token carregado via Streamlit Secrets (seção [smartsheet]).")
+                    
+                elif "env" in st.secrets and "SMARTSHEET_ACCESS_TOKEN" in st.secrets["env"]:
+                    token = st.secrets["env"]["SMARTSHEET_ACCESS_TOKEN"]
+                    print("INFO: Token carregado via Streamlit Secrets (seção [env]).")
+                    
+            except Exception as e:
+                # Se não estiver rodando no Streamlit ou secrets não configurados
+                print(f"AVISO: Falha ao tentar ler Streamlit Secrets: {e}")
+                pass
+                
+        if token:
+            return token
         
-        return token
-    
+        print("\nERRO DE CONFIGURAÇÃO: Token 'SMARTSHEET_ACCESS_TOKEN' não encontrado nem no .env nem no st.secrets.")
+        return None
     except Exception as e:
         print(f"\nERRO DE CONFIGURAÇÃO: {str(e)}")
         print("\nPor favor, crie um arquivo .env na mesma pasta do script com:")
