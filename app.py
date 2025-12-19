@@ -2294,7 +2294,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
         Termino_Prevista=('Termino_Prevista', 'max'),
         Inicio_Real=('Inicio_Real', 'min'),
         Termino_Real=('Termino_Real', 'max'),
-        **{'% concluído': ('% concluído', 'max')},
+        **{'% concluído': ('% concluído', 'mean')},
         SETOR=('SETOR', 'first')
     ).reset_index()
     
