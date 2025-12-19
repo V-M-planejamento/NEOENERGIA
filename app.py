@@ -659,7 +659,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
             Termino_Prevista=('Termino_Prevista', 'max'),
             Inicio_Real=('Inicio_Real', 'min'),
             Termino_Real=('Termino_Real', 'max'),
-            **{'% concluído': ('% concluído', 'max')},
+            **{'% concluído': ('% concluído', 'mean')},
             SETOR=('SETOR', 'first')
         ).reset_index()
 
@@ -3828,7 +3828,7 @@ with st.spinner("Carregando e processando dados..."):
                     Termino_Prevista=('Termino_Prevista', 'max'),
                     Inicio_Real=('Inicio_Real', 'min'),
                     Termino_Real=('Termino_Real', 'max'),
-                    Percentual_Concluido=('% concluído', 'max') if '% concluído' in df_detalhes.columns else ('% concluído', lambda x: 0)
+                    Percentual_Concluido=('% concluído', 'mean') if '% concluído' in df_detalhes.columns else ('% concluído', lambda x: 0)
                 ).reset_index()
 
                 if '% concluído' in df_detalhes.columns and not df_agregado.empty and (df_agregado['Percentual_Concluido'].fillna(0).max() <= 1):
@@ -4083,7 +4083,7 @@ with st.spinner("Carregando e processando dados..."):
                 }
                 
                 if '% concluído' in df_detalhes_tabelao.columns:
-                    agg_dict['Percentual_Concluido'] = ('% concluído', 'max')
+                    agg_dict['Percentual_Concluido'] = ('% concluído', 'mean')
                     if not df_detalhes_tabelao.empty and (df_detalhes_tabelao['% concluído'].fillna(0).max() <= 1):
                         df_detalhes_tabelao['% concluído'] *= 100
 
