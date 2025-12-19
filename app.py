@@ -2339,7 +2339,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                 if pd.notna(end_real_original) and pd.notna(end_date):
                     if end_real_original <= end_date: status_color_class = 'status-green'
                     else: status_color_class = 'status-red'
-            elif progress < 100 and pd.notna(end_date) and (end_date < hoje): status_color_class = 'status-yellow'
+            elif progress < 100 and pd.notna(end_real_original) and (end_real_original < hoje): status_color_class = 'status-yellow'
 
             task = {
                 "id": f"t{j}_{i}", # ID único
@@ -3921,7 +3921,7 @@ with st.spinner("Carregando e processando dados..."):
                                 if pd.notna(termino_real) and pd.notna(termino_previsto):
                                     if termino_real < termino_previsto: cor = "#2EAF5B"
                                     elif termino_real > termino_previsto: cor = "#C30202"
-                            elif pd.notna(termino_previsto) and (termino_previsto < pd.Timestamp.now()):
+                            elif pd.notna(termino_real) and (termino_real < pd.Timestamp.now()):
                                 cor = "#A38408"
 
                             for i, col in enumerate(df_para_estilo.columns):
