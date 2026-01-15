@@ -3207,8 +3207,8 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                     bar.className = 'gantt-bar ' + tipo;
                     const coresSetor = coresPorSetor[task.setor] || coresPorSetor['Não especificado'] || {{previsto: '#cccccc', real: '#888888'}};
                     bar.style.backgroundColor = tipo === 'previsto' ? coresSetor.previsto : coresSetor.real;
-                    bar.style.left = left + 'px'; 
-                    bar.style.width = width + 'px';
+                    bar.style.left = `${{left}}px`; 
+                    bar.style.width = `${{width}}px`;
                     const barLabel = document.createElement('span'); 
                     barLabel.className = 'bar-label'; 
                     // Check Note (Consolidated)
