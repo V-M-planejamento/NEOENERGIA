@@ -1240,10 +1240,6 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         <div class="radial-menu-wrapper">
                             <div class="radial-background-circle"></div>
                             <div class="radial-center" title="Menu Radial"></div>
-                            <div class="radial-item" id="btn-create-baseline" style="top: 44px; left: 114px;">
-                                <svg viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
-                            </div>
-                            <div class="radial-tooltip yellow-tooltip" style="top: 10px; left: 50%; transform: translateX(-50%);">Em produção <span class="tooltip-badge">X</span></div>
                             <div class="radial-item" id="btn-notepad" style="top: 114px; left: 184px;">
                                 <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                             </div>
@@ -2414,17 +2410,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             }}
                         }});
                         
-                        // --- 3. BOTÃO DE BASELINE (DESABILITADO) ---
-                        const baselineBtn = document.getElementById('btn-create-baseline');
-                        if (baselineBtn) {{
-                            baselineBtn.addEventListener('click', (e) => {{
-                                e.stopPropagation();
-                                alert('🚧 Funcionalidade em produção!\\n\\nA criação de baselines estará disponível em breve.');
-                                menu.style.display = 'none';
-                            }});
-                        }}
-                        
-                        // --- 4. FLOATING NOTEPAD ---
+                        // --- 3. FLOATING NOTEPAD ---
                         let notepadActive = false;
                         const notepadBtn = document.getElementById('btn-notepad');
                         const notepadTextarea = notepad.querySelector('.notepad-content');
