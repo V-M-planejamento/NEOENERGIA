@@ -3074,6 +3074,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                     font-size: 13px;
                 }}
             </style>
+        </head>
         <body>
             <div class="gantt-container" id="gantt-container-{project['id']}">
                     <!-- Menu Radial de Contexto -->
