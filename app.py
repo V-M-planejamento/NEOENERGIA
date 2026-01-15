@@ -3800,6 +3800,132 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                 
                 // Inicializar o Gantt Consolidado
                 initGantt();
+                // ==== MENU RADIAL CONSOLIDADO ====
+                (function() {{
+                    const container = document.getElementById('gantt-container-{project["id"]}');
+                    if (!container) return;
+                    const menu = document.getElementById('radial-menu');
+                    const notepad = document.getElementById('floating-notepad');
+                    if (!menu || !notepad) return;
+                    
+                    // Right-click abre menu
+                    container.addEventListener('contextmenu', (e) => {{
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const menuWidth = 170, menuHeight = 170;
+                        let left = e.clientX - (menuWidth / 2);
+                        let top = e.clientY - (menuHeight / 2);
+                        if (left + menuWidth > window.innerWidth) left = window.innerWidth - menuWidth - 10;
+                        if (left < 0) left = 10;
+                        if (top + menuHeight > window.innerHeight) top = window.innerHeight - menuHeight - 10;
+                        if (top < 0) top = 10;
+                        menu.style.left = left + 'px';
+                        menu.style.top = top + 'px';
+                        menu.style.display = 'block';
+                    }});
+                    
+                    // Fechar ao clicar fora
+                    document.addEventListener('click', (e) => {{
+                        if (!menu.contains(e.target) && menu.style.display === 'block') menu.style.display = 'none';
+                    }});
+                    
+                    // Fechar ao clicar nos círculos
+                    const radialCenter = menu.querySelector('.radial-center');
+                    const radialBgCircle = menu.querySelector('.radial-background-circle');
+                    if (radialCenter) radialCenter.addEventListener('click', (e) => {{ e.stopPropagation(); menu.style.display = 'none'; }});
+                    if (radialBgCircle) radialBgCircle.addEventListener('click', (e) => {{ e.stopPropagation(); menu.style.display = 'none'; }});
+                    
+                    // Notepad
+                    let notepadActive = false;
+                    const notepadBtn = document.getElementById('btn-notepad');
+                    const notepadTextarea = notepad.querySelector('.notepad-content');
+                    const notepadClose = notepad.querySelector('.notepad-close');
+                    const NOTEPAD_KEY = 'gantt_notepad_consolidado';
+                    
+                    const saved = localStorage.getItem(NOTEPAD_KEY);
+                    if (saved && notepadTextarea) notepadTextarea.value = saved;
+                    if (notepadTextarea) notepadTextarea.addEventListener('input', () => localStorage.setItem(NOTEPAD_KEY, notepadTextarea.value));
+                    
+                    if (notepadBtn) {{
+                        notepadBtn.addEventListener('click', (e) => {{
+                            e.stopPropagation();
+                            notepadActive = !notepadActive;
+                            notepad.style.display = notepadActive ? 'flex' : 'none';
+                            notepadBtn.style.borderColor = notepadActive ? '#007AFF' : '';
+                            notepadBtn.style.background = notepadActive ? '#e6f2ff' : '';
+                            menu.style.display = 'none';
+                        }});
+                    }}
+                    
+                    if (notepadClose) {{
+                        notepadClose.addEventListener('click', () => {{
+                            notepadActive = false;
+                            notepad.style.display = 'none';
+                            if (notepadBtn) {{
+                                notepadBtn.style.borderColor = '';
+                                notepadBtn.style.background = '';
+                            }}
+                        }});
+                    }}
+                    
+                    // Drag-and-drop notepad
+                    let isDragging = false, offsetX, offsetY;
+                    const notepadHeader = notepad.querySelector('.notepad-header');
+                    if (notepadHeader) {{
+                        notepadHeader.addEventListener('mousedown', (e) => {{
+                            if (e.target.closest('.notepad-close')) return;
+                            isDragging = true;
+                            offsetX = e.clientX - notepad.offsetLeft;
+                            offsetY = e.clientY - notepad.offsetTop;
+                            notepadHeader.style.cursor = 'grabbing';
+                        }});
+                    }}
+                    document.addEventListener('mousemove', (e) => {{
+                        if (isDragging) {{
+                            notepad.style.left = (e.clientX - offsetX) + 'px';
+                            notepad.style.top = (e.clientY - offsetY) + 'px';
+                            notepad.style.right = 'auto';
+                        }}
+                    }});
+                    document.addEventListener('mouseup', () => {{
+                        if (isDragging) {{
+                            isDragging = false;
+                            if (notepadHeader) notepadHeader.style.cursor = 'move';
+                        }}
+                    }});
+                    
+                    // Modo foco
+                    let focusModeActive = false;
+                    const focusBtn = document.getElementById('btn-focus-mode');
+                    if (focusBtn) {{
+                        focusBtn.addEventListener('click', (e) => {{
+                            e.stopPropagation();
+                            focusModeActive = !focusModeActive;
+                            const allBars = container.querySelectorAll('.gantt-bar');
+                            if (focusModeActive) {{
+                                allBars.forEach(bar => bar.classList.add('focus-mode'));
+                                focusBtn.style.borderColor = '#007AFF';
+                                focusBtn.style.background = '#e6f2ff';
+                            }} else {{
+                                allBars.forEach(bar => bar.classList.remove('focus-mode', 'focused'));
+                                focusBtn.style.borderColor = '';
+                                focusBtn.style.background = '';
+                            }}
+                            menu.style.display = 'none';
+                        }});
+                    }}
+                    
+                    // Click nas barras
+                    container.addEventListener('click', (e) => {{
+                        if (!focusModeActive) return;
+                        const clickedBar = e.target.closest('.gantt-bar');
+                        if (!clickedBar) return;
+                        if (clickedBar.classList.contains('focused')) clickedBar.classList.remove('focused');
+                        else clickedBar.classList.add('focused');
+                    }});
+                    
+                    console.log('✅ Menu radial consolidado OK');
+                }})();
             </script>
         </body>
         </html>
