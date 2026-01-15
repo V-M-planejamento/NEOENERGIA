@@ -999,8 +999,8 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
 
                     .radial-menu-wrapper {{
                         position: relative;
-                        width: 260px;
-                        height: 260px;
+                        width: 170px;
+                        height: 170px;
                     }}
 
                     .radial-center {{
@@ -1008,9 +1008,9 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         top: 50%;
                         left: 50%;
                         transform: translate(-50%, -50%);
-                        width: 44px;
-                        height: 44px;
-                        border: 3px solid #007AFF;
+                        width: 28px;
+                        height: 28px;
+                        border: 2px solid #007AFF;
                         border-radius: 50%;
                         background: transparent;
                         cursor: pointer;
@@ -1023,7 +1023,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
 
                     .radial-center:hover {{
                         transform: translate(-50%, -50%) scale(1.1);
-                        border-width: 4px;
+                        border-width: 3px;
                     }}
 
                     .radial-background-circle {{
@@ -1031,9 +1031,9 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         top: 50%;
                         left: 50%;
                         transform: translate(-50%, -50%);
-                        width: 140px;
-                        height: 140px;
-                        border: 4px solid #f0f0f0;
+                        width: 90px;
+                        height: 90px;
+                        border: 2px solid #f0f0f0;
                         border-radius: 50%;
                         background: transparent;
                         z-index: 1;
@@ -1041,8 +1041,8 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
 
                     .radial-item {{
                         position: absolute;
-                        width: 32px;
-                        height: 32px;
+                        width: 22px;
+                        height: 22px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -1050,21 +1050,21 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         transition: all 0.2s ease;
                         z-index: 5;
                         background: white;
-                        border: 2px solid #f0f0f0;
-                        border-radius: 7px;
-                        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+                        border: 1.5px solid #f0f0f0;
+                        border-radius: 5px;
+                        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
                     }}
 
                     .radial-item:hover {{
                         background: #f5f5f5;
                         transform: scale(1.1);
-                        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+                        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
                         border-color: #007AFF;
                     }}
 
                     .radial-item svg {{
-                        width: 20px;
-                        height: 20px;
+                        width: 14px;
+                        height: 14px;
                         transition: all 0.2s ease;
                         fill: #333333;
                         stroke: #333333;
@@ -1089,9 +1089,9 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
 
                     .radial-tooltip {{
                         position: absolute;
-                        padding: 5px 9px;
-                        border-radius: 14px;
-                        font-size: 10px;
+                        padding: 3px 6px;
+                        border-radius: 10px;
+                        font-size: 8px;
                         font-weight: 500;
                         white-space: nowrap;
                         display: flex;
@@ -1125,11 +1125,11 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     }}
 
                     .tooltip-badge {{
-                        padding: 3px 8px;
-                        border-radius: 5px;
-                        font-size: 11px;
+                        padding: 2px 5px;
+                        border-radius: 4px;
+                        font-size: 8px;
                         font-weight: 600;
-                        min-width: 20px;
+                        min-width: 14px;
                         text-align: center;
                         font-family: 'SF Mono', Monaco, 'Courier New', monospace;
                         background: #e0e0e0;
@@ -1240,14 +1240,14 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         <div class="radial-menu-wrapper">
                             <div class="radial-background-circle"></div>
                             <div class="radial-center" title="Menu Radial"></div>
-                            <div class="radial-item" id="btn-notepad" style="top: 114px; left: 184px;">
+                            <div class="radial-item" id="btn-notepad" style="top: 74px; left: 120px;">
                                 <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                             </div>
-                            <div class="radial-tooltip" style="top: 114px; left: 224px;">Notas <span class="tooltip-badge">N</span></div>
-                            <div class="radial-item" id="btn-focus-mode" style="top: 114px; left: 44px;">
+                            <div class="radial-tooltip" style="top: 74px; left: 146px;">Notas <span class="tooltip-badge">N</span></div>
+                            <div class="radial-item" id="btn-focus-mode" style="top: 74px; left: 28px;">
                                 <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M18 18l-3-3m3 3l3-3m-3 3v-6" stroke="currentColor" fill="none" stroke-width="2"/></svg>
                             </div>
-                            <div class="radial-tooltip" style="top: 114px; right: 224px;">Modo Foco <span class="tooltip-badge">F</span></div>
+                            <div class="radial-tooltip" style="top: 74px; right: 146px;">Modo Foco <span class="tooltip-badge">F</span></div>
                         </div>
                     </div>
                     <div id="floating-notepad">
@@ -2383,8 +2383,8 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             e.preventDefault();
                             e.stopPropagation();
                             
-                            const menuWidth = 260;
-                            const menuHeight = 260;
+                            const menuWidth = 170;
+                            const menuHeight = 170;
                             const viewportWidth = window.innerWidth;
                             const viewportHeight = window.innerHeight;
                             
@@ -2409,6 +2409,26 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                                 menu.style.display = 'none';
                             }}
                         }});
+                        
+                        // --- 2.1. FECHAR MENU AO CLICAR NOS CÍRCULOS INTERNOS ---
+                        const radialCenter = menu.querySelector('.radial-center');
+                        const radialBgCircle = menu.querySelector('.radial-background-circle');
+                        
+                        if (radialCenter) {{
+                            radialCenter.addEventListener('click', (e) => {{
+                                e.stopPropagation();
+                                menu.style.display = 'none';
+                                console.log('❌ Menu fechado (clique no centro)');
+                            }});
+                        }}
+                        
+                        if (radialBgCircle) {{
+                            radialBgCircle.addEventListener('click', (e) => {{
+                                e.stopPropagation();
+                                menu.style.display = 'none';
+                                console.log('❌ Menu fechado (clique no círculo de fundo)');
+                            }});
+                        }}
                         
                         // --- 3. FLOATING NOTEPAD ---
                         let notepadActive = false;
