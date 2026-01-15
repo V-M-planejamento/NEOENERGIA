@@ -1156,11 +1156,16 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         background: white;
                         border: 1px solid #e8e8e8;
                         border-radius: 16px;
-                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.0 8);
+                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
                         z-index: 9999;
                         flex-direction: column;
                         font-family: 'Inter', sans-serif;
                         overflow: hidden;
+                        resize: both;
+                        min-width: 250px;
+                        min-height: 200px;
+                        max-width: 600px;
+                        max-height: 80vh;
                     }}
 
                     .notepad-header {{
@@ -3067,6 +3072,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                     font-size: 13px;
                 }}
                 .floating-filter-menu .vscomp-option {{
+                }}
                 .floating-filter-menu .vscomp-search-input {{
                     height: 30px;
                     font-size: 13px;
