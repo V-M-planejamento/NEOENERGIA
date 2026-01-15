@@ -3805,56 +3805,101 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                 (function() {{
                     const container = document.getElementById('gantt-container-{project["id"]}');
                     if (!container) return;
+                    
                     const menu = document.getElementById('radial-menu');
                     const notepad = document.getElementById('floating-notepad');
-                    if (!menu || !notepad) return;
                     
-                    // Right-click abre menu
+                    if (!menu || !notepad) {{
+                        console.warn('Menu radial ou notepad não encontrado');
+                        return;
+                    }}
+                    
+                    // --- 1. ABRIR MENU COM RIGHT-CLICK ---
                     container.addEventListener('contextmenu', (e) => {{
                         e.preventDefault();
                         e.stopPropagation();
-                        const menuWidth = 170, menuHeight = 170;
+                        
+                        const menuWidth = 170;
+                        const menuHeight = 170;
+                        const viewportWidth = window.innerWidth;
+                        const viewportHeight = window.innerHeight;
+                        
                         let left = e.clientX - (menuWidth / 2);
                         let top = e.clientY - (menuHeight / 2);
-                        if (left + menuWidth > window.innerWidth) left = window.innerWidth - menuWidth - 10;
+                        
+                        if (left + menuWidth > viewportWidth) left = viewportWidth - menuWidth - 10;
                         if (left < 0) left = 10;
-                        if (top + menuHeight > window.innerHeight) top = window.innerHeight - menuHeight - 10;
+                        if (top + menuHeight > viewportHeight) top = viewportHeight - menuHeight - 10;
                         if (top < 0) top = 10;
+                        
                         menu.style.left = left + 'px';
                         menu.style.top = top + 'px';
                         menu.style.display = 'block';
+                        
+                        console.log('📍 Menu radial aberto (consolidado)');
                     }});
                     
-                    // Fechar ao clicar fora
+                    // --- 2. FECHAR MENU AO CLICAR FORA ---
                     document.addEventListener('click', (e) => {{
-                        if (!menu.contains(e.target) && menu.style.display === 'block') menu.style.display = 'none';
+                        if (!menu.contains(e.target) && menu.style.display === 'block') {{
+                            menu.style.display = 'none';
+                        }}
                     }});
                     
-                    // Fechar ao clicar nos círculos
+                    // --- 2.1. FECHAR MENU AO CLICAR NOS CÍRCULOS INTERNOS ---
                     const radialCenter = menu.querySelector('.radial-center');
                     const radialBgCircle = menu.querySelector('.radial-background-circle');
-                    if (radialCenter) radialCenter.addEventListener('click', (e) => {{ e.stopPropagation(); menu.style.display = 'none'; }});
-                    if (radialBgCircle) radialBgCircle.addEventListener('click', (e) => {{ e.stopPropagation(); menu.style.display = 'none'; }});
                     
-                    // Notepad
+                    if (radialCenter) {{
+                        radialCenter.addEventListener('click', (e) => {{
+                            e.stopPropagation();
+                            menu.style.display = 'none';
+                            console.log('❌ Menu fechado (clique no centro)');
+                        }});
+                    }}
+                    
+                    if (radialBgCircle) {{
+                        radialBgCircle.addEventListener('click', (e) => {{
+                            e.stopPropagation();
+                            menu.style.display = 'none';
+                            console.log('❌ Menu fechado (clique no círculo de fundo)');
+                        }});
+                    }}
+                    
+                    // --- 3. FLOATING NOTEPAD ---
                     let notepadActive = false;
                     const notepadBtn = document.getElementById('btn-notepad');
                     const notepadTextarea = notepad.querySelector('.notepad-content');
                     const notepadClose = notepad.querySelector('.notepad-close');
-                    const NOTEPAD_KEY = 'gantt_notepad_consolidado';
+                    const NOTEPAD_STORAGE_KEY = 'gantt_notepad_consolidado';
                     
-                    const saved = localStorage.getItem(NOTEPAD_KEY);
-                    if (saved && notepadTextarea) notepadTextarea.value = saved;
-                    if (notepadTextarea) notepadTextarea.addEventListener('input', () => localStorage.setItem(NOTEPAD_KEY, notepadTextarea.value));
+                    const savedContent = localStorage.getItem(NOTEPAD_STORAGE_KEY);
+                    if (savedContent && notepadTextarea) {{
+                        notepadTextarea.value = savedContent;
+                    }}
+                    
+                    if (notepadTextarea) {{
+                        notepadTextarea.addEventListener('input', () => {{
+                            localStorage.setItem(NOTEPAD_STORAGE_KEY, notepadTextarea.value);
+                        }});
+                    }}
                     
                     if (notepadBtn) {{
                         notepadBtn.addEventListener('click', (e) => {{
                             e.stopPropagation();
                             notepadActive = !notepadActive;
                             notepad.style.display = notepadActive ? 'flex' : 'none';
-                            notepadBtn.style.borderColor = notepadActive ? '#007AFF' : '';
-                            notepadBtn.style.background = notepadActive ? '#e6f2ff' : '';
+                            
+                            if (notepadActive) {{
+                                notepadBtn.style.borderColor = '#007AFF';
+                                notepadBtn.style.background = '#e6f2ff';
+                            }} else {{
+                                notepadBtn.style.borderColor = '';
+                                notepadBtn.style.background = '';
+                            }}
+                            
                             menu.style.display = 'none';
+                            console.log('📝 Notepad toggled:', notepadActive);
                         }});
                     }}
                     
@@ -3869,9 +3914,10 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                         }});
                     }}
                     
-                    // Drag-and-drop notepad
+                    // Drag-and-drop do notepad
                     let isDragging = false, offsetX, offsetY;
                     const notepadHeader = notepad.querySelector('.notepad-header');
+                    
                     if (notepadHeader) {{
                         notepadHeader.addEventListener('mousedown', (e) => {{
                             if (e.target.closest('.notepad-close')) return;
@@ -3881,6 +3927,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                             notepadHeader.style.cursor = 'grabbing';
                         }});
                     }}
+                    
                     document.addEventListener('mousemove', (e) => {{
                         if (isDragging) {{
                             notepad.style.left = (e.clientX - offsetX) + 'px';
@@ -3888,6 +3935,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                             notepad.style.right = 'auto';
                         }}
                     }});
+                    
                     document.addEventListener('mouseup', () => {{
                         if (isDragging) {{
                             isDragging = false;
@@ -3895,37 +3943,52 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                         }}
                     }});
                     
-                    // Modo foco
+                    // --- 4. MODO FOCO ---
                     let focusModeActive = false;
                     const focusBtn = document.getElementById('btn-focus-mode');
+                    
                     if (focusBtn) {{
                         focusBtn.addEventListener('click', (e) => {{
                             e.stopPropagation();
                             focusModeActive = !focusModeActive;
+                            
                             const allBars = container.querySelectorAll('.gantt-bar');
+                            
                             if (focusModeActive) {{
                                 allBars.forEach(bar => bar.classList.add('focus-mode'));
                                 focusBtn.style.borderColor = '#007AFF';
                                 focusBtn.style.background = '#e6f2ff';
+                                console.log('🎯 Modo foco ATIVADO');
                             }} else {{
-                                allBars.forEach(bar => bar.classList.remove('focus-mode', 'focused'));
+                                allBars.forEach(bar => {{
+                                    bar.classList.remove('focus-mode', 'focused');
+                                }});
                                 focusBtn.style.borderColor = '';
                                 focusBtn.style.background = '';
+                                console.log('🎯 Modo foco DESATIVADO');
                             }}
+                            
                             menu.style.display = 'none';
                         }});
                     }}
                     
-                    // Click nas barras
+                    // --- 5. CLICK EM BARRAS PARA FOCAR/DESFOCAR ---
                     container.addEventListener('click', (e) => {{
                         if (!focusModeActive) return;
+                        
                         const clickedBar = e.target.closest('.gantt-bar');
                         if (!clickedBar) return;
-                        if (clickedBar.classList.contains('focused')) clickedBar.classList.remove('focused');
-                        else clickedBar.classList.add('focused');
+                        
+                        if (clickedBar.classList.contains('focused')) {{
+                            clickedBar.classList.remove('focused');
+                            console.log('⚫ Barra desfocada');
+                        }} else {{
+                            clickedBar.classList.add('focused');
+                            console.log('⚪ Barra focada');
+                        }}
                     }});
                     
-                    console.log('✅ Menu radial consolidado OK');
+                    console.log('✅ Menu radial de contexto inicializado (consolidado)');
                 }})();
             </script>
         </body>
