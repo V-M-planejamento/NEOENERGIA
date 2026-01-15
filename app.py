@@ -2368,6 +2368,187 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     
                     // Inicializar o Gantt
                     initGantt();
+                    
+                    // ==== MENU RADIAL DE CONTEXTO ====
+                    (function() {{
+                        const container = document.getElementById('gantt-container-{project["id"]}');
+                        if (!container) return;
+                        
+                        const menu = document.getElementById('radial-menu');
+                        const notepad = document.getElementById('floating-notepad');
+                        
+                        if (!menu || !notepad) {{
+                            console.warn('Menu radial ou notepad não encontrado');
+                            return;
+                        }}
+                        
+                        // --- 1. ABRIR MENU COM RIGHT-CLICK ---
+                        container.addEventListener('contextmenu', (e) => {{
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            const menuWidth = 260;
+                            const menuHeight = 260;
+                            const viewportWidth = window.innerWidth;
+                            const viewportHeight = window.innerHeight;
+                            
+                            let left = e.clientX - (menuWidth / 2);
+                            let top = e.clientY - (menuHeight / 2);
+                            
+                            if (left + menuWidth > viewportWidth) left = viewportWidth - menuWidth - 10;
+                            if (left < 0) left = 10;
+                            if (top + menuHeight > viewportHeight) top = viewportHeight - menuHeight - 10;
+                            if (top < 0) top = 10;
+                            
+                            menu.style.left = left + 'px';
+                            menu.style.top = top + 'px';
+                            menu.style.display = 'block';
+                            
+                            console.log('📍 Menu radial aberto');
+                        }});
+                        
+                        // --- 2. FECHAR MENU AO CLICAR FORA ---
+                        document.addEventListener('click', (e) => {{
+                            if (!menu.contains(e.target) && menu.style.display === 'block') {{
+                                menu.style.display = 'none';
+                            }}
+                        }});
+                        
+                        // --- 3. BOTÃO DE BASELINE (DESABILITADO) ---
+                        const baselineBtn = document.getElementById('btn-create-baseline');
+                        if (baselineBtn) {{
+                            baselineBtn.addEventListener('click', (e) => {{
+                                e.stopPropagation();
+                                alert('🚧 Funcionalidade em produção!\\n\\nA criação de baselines estará disponível em breve.');
+                                menu.style.display = 'none';
+                            }});
+                        }}
+                        
+                        // --- 4. FLOATING NOTEPAD ---
+                        let notepadActive = false;
+                        const notepadBtn = document.getElementById('btn-notepad');
+                        const notepadTextarea = notepad.querySelector('.notepad-content');
+                        const notepadClose = notepad.querySelector('.notepad-close');
+                        const NOTEPAD_STORAGE_KEY = 'gantt_notepad_content';
+                        
+                        const savedContent = localStorage.getItem(NOTEPAD_STORAGE_KEY);
+                        if (savedContent && notepadTextarea) {{
+                            notepadTextarea.value = savedContent;
+                        }}
+                        
+                        if (notepadTextarea) {{
+                            notepadTextarea.addEventListener('input', () => {{
+                                localStorage.setItem(NOTEPAD_STORAGE_KEY, notepadTextarea.value);
+                            }});
+                        }}
+                        
+                        if (notepadBtn) {{
+                            notepadBtn.addEventListener('click', (e) => {{
+                                e.stopPropagation();
+                                notepadActive = !notepadActive;
+                                notepad.style.display = notepadActive ? 'flex' : 'none';
+                                
+                                if (notepadActive) {{
+                                    notepadBtn.style.borderColor = '#007AFF';
+                                    notepadBtn.style.background = '#e6f2ff';
+                                }} else {{
+                                    notepadBtn.style.borderColor = '';
+                                    notepadBtn.style.background = '';
+                                }}
+                                
+                                menu.style.display = 'none';
+                                console.log('📝 Notepad toggled:', notepadActive);
+                            }});
+                        }}
+                        
+                        if (notepadClose) {{
+                            notepadClose.addEventListener('click', () => {{
+                                notepadActive = false;
+                                notepad.style.display = 'none';
+                                if (notepadBtn) {{
+                                    notepadBtn.style.borderColor = '';
+                                    notepadBtn.style.background = '';
+                                }}
+                            }});
+                        }}
+                        
+                        // Drag-and-drop do notepad
+                        let isDragging = false;
+                        let offsetX, offsetY;
+                        const notepadHeader = notepad.querySelector('.notepad-header');
+                        
+                        if (notepadHeader) {{
+                            notepadHeader.addEventListener('mousedown', (e) => {{
+                                if (e.target.closest('.notepad-close')) return;
+                                isDragging = true;
+                                offsetX = e.clientX - notepad.offsetLeft;
+                                offsetY = e.clientY - notepad.offsetTop;
+                                notepadHeader.style.cursor = 'grabbing';
+                            }});
+                        }}
+                        
+                        document.addEventListener('mousemove', (e) => {{
+                            if (isDragging) {{
+                                notepad.style.left = (e.clientX - offsetX) + 'px';
+                                notepad.style.top = (e.clientY - offsetY) + 'px';
+                                notepad.style.right = 'auto';
+                            }}
+                        }});
+                        
+                        document.addEventListener('mouseup', () => {{
+                            if (isDragging) {{
+                                isDragging = false;
+                                if (notepadHeader) notepadHeader.style.cursor = 'move';
+                            }}
+                        }});
+                        
+                        // --- 5. MODO FOCO ---
+                        let focusModeActive = false;
+                        const focusBtn = document.getElementById('btn-focus-mode');
+                        
+                        if (focusBtn) {{
+                            focusBtn.addEventListener('click', (e) => {{
+                                e.stopPropagation();
+                                focusModeActive = !focusModeActive;
+                                
+                                const allBars = container.querySelectorAll('.gantt-bar');
+                                
+                                if (focusModeActive) {{
+                                    allBars.forEach(bar => bar.classList.add('focus-mode'));
+                                    focusBtn.style.borderColor = '#007AFF';
+                                    focusBtn.style.background = '#e6f2ff';
+                                    console.log('🎯 Modo foco ATIVADO');
+                                }} else {{
+                                    allBars.forEach(bar => {{
+                                        bar.classList.remove('focus-mode', 'focused');
+                                    }});
+                                    focusBtn.style.borderColor = '';
+                                    focusBtn.style.background = '';
+                                    console.log('🎯 Modo foco DESATIVADO');
+                                }}
+                                
+                                menu.style.display = 'none';
+                            }});
+                        }}
+                        
+                        // --- 6. CLICK EM BARRAS PARA FOCAR/DESFOCAR ---
+                        container.addEventListener('click', (e) => {{
+                            if (!focusModeActive) return;
+                            
+                            const clickedBar = e.target.closest('.gantt-bar');
+                            if (!clickedBar) return;
+                            
+                            if (clickedBar.classList.contains('focused')) {{
+                                clickedBar.classList.remove('focused');
+                                console.log('⚫ Barra desfocada');
+                            }} else {{
+                                clickedBar.classList.add('focused');
+                                console.log('⚪ Barra focada');
+                            }}
+                        }});
+                        
+                        console.log('✅ Menu radial de contexto inicializado');
+                    }})();
                 </script>
             </body>
             </html>
