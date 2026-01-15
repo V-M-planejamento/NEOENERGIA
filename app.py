@@ -35,10 +35,38 @@ except ImportError:
 try:
     from processa_neo import tratar_e_retornar_dados_previstos
     from processa_neo_smartsheet import main as processar_smartsheet_main
+    import notes_handler_neo as notes_handler # Importação do gerenciador de notas
 except ImportError:
     st.warning("Scripts de processamento não encontrados. O app usará dados de exemplo.")
     tratar_e_retornar_dados_previstos = None
     processar_smartsheet_main = None
+    notes_handler = None
+
+# --- Processamento de Ações de URL (Notas) ---
+if notes_handler:
+    query_params = st.query_params
+    if 'action' in query_params and query_params['action'] == 'save_note':
+        try:
+            p_emp = query_params.get('emp', [None])
+            if isinstance(p_emp, list): p_emp = p_emp[0]
+            
+            p_task = query_params.get('task', [None]) 
+            if isinstance(p_task, list): p_task = p_task[0]
+            
+            p_note = query_params.get('note', [""])
+            if isinstance(p_note, list): p_note = p_note[0]
+            
+            if p_emp and p_task:
+                success = notes_handler.save_note(p_emp, p_task, p_note)
+                if success:
+                    st.toast(f"Nota salva para: {p_task}", icon="✅")
+                else:
+                    st.error("Erro ao salvar nota.")
+            
+            # Limpar URL
+            st.query_params.clear()
+        except Exception as e:
+            st.error(f"Erro ao processar ação: {e}")
 
 # --- Funções Auxiliares Faltantes ---
 def padronizar_etapa(etapa):
@@ -698,6 +726,12 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
 
         tasks_base_data = project['tasks'] if project else []
 
+        # --- Carregar Notas ---
+        if notes_handler:
+            notes_dict = notes_handler.load_notes()
+        else:
+            notes_dict = {}
+
         data_min_proj, data_max_proj = calcular_periodo_datas(df_para_datas)
         total_meses_proj = ((data_max_proj.year - data_min_proj.year) * 12) + (data_max_proj.month - data_min_proj.month) + 1
 
@@ -986,6 +1020,50 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         height: 30px;
                         font-size: 13px;
                     }}
+                    
+                    /* Context Menu */
+                    .context-menu {{
+                        display: none;
+                        position: fixed;
+                        z-index: 10000;
+                        width: 150px;
+                        background-color: #fff;
+                        border-radius: 5px;
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                        border: 1px solid #e2e8f0;
+                        padding: 5px 0;
+                    }}
+                    .context-menu-item {{
+                        padding: 8px 15px;
+                        font-size: 13px;
+                        color: #333;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        transition: background-color 0.1s;
+                    }}
+                    .context-menu-item:hover {{
+                        background-color: #f1f5f9;
+                    }}
+                    .context-menu-item svg {{
+                        margin-right: 8px;
+                        width: 14px;
+                        height: 14px;
+                    }}
+                    .gantt-row.focus-mode-active {{
+                        opacity: 0.2;
+                        filter: grayscale(100%);
+                    }}
+                    .gantt-row.focused {{
+                        opacity: 1 !important;
+                        filter: none !important;
+                        background-color: #fffbeb; /* Highlight */
+                        font-weight: bold;
+                    }}
+                    .bar-label.has-note::after {{
+                        content: " 📝";
+                        font-size: 10px;
+                    }}
 
                 </style>
             </head>
@@ -1087,6 +1165,17 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         </div>
                     </div>
                     <div class="tooltip" id="tooltip-{project["id"]}"></div>
+                    
+                    <div id="context-menu-{project['id']}" class="context-menu">
+                        <div class="context-menu-item" id="ctx-focus-{project['id']}">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            Modo Foco
+                        </div>
+                        <div class="context-menu-item" id="ctx-note-{project['id']}">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            Adicionar Nota
+                        </div>
+                    </div>
                 </div>
                 
                 
@@ -1098,6 +1187,9 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     console.log('Inicializando Gantt para projeto:', '{project["name"]}');
                     
                     const coresPorSetor = {json.dumps(StyleConfig.CORES_POR_SETOR)};
+
+                    const taskNotes = {json.dumps(notes_dict)};
+                    let currentContextMenuTask = null;
 
                     const allProjectsData = {json.dumps(gantt_data_base)};
 
@@ -1637,6 +1729,11 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             const barLabel = document.createElement('span'); 
                             barLabel.className = 'bar-label'; 
                             barLabel.textContent = `${{task.name}} (${{task.progress}}%)`; 
+                            
+                            // Check Note (Project View)
+                            const noteKey = '{project["name"]}|' + task.name;
+                            if (taskNotes[noteKey]) barLabel.classList.add('has-note');
+
                             bar.appendChild(barLabel);
                         }}
                         
@@ -2095,8 +2192,89 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     console.log('Dados do projeto:', projectData);
                     console.log('Tasks base:', allTasks_baseData);
                     
-                    // Inicializar o Gantt
+                    // --- Context Menu Logic ---
+                    function updateNotesIndicators() {{
+                        document.querySelectorAll('.gantt-row').forEach(row => {{
+                            const taskName = row.getAttribute('data-task');
+                            // Check both direct match and composite keys if needed
+                            const noteKey = '{project["name"]}|' + taskName; 
+                            if (taskNotes[noteKey]) {{
+                                 const label = row.querySelector('.bar-label');
+                                 if(label && !label.classList.contains('has-note')) label.classList.add('has-note');
+                            }}
+                        }});
+                    }}
+
+                    document.addEventListener('contextmenu', function(e) {{
+                        const row = e.target.closest('.gantt-row');
+                        
+                        if (row) {{
+                            e.preventDefault();
+                            currentContextMenuTask = row.getAttribute('data-task');
+                            
+                            const menu = document.getElementById('context-menu-{project["id"]}');
+                            menu.style.display = 'block';
+                            menu.style.left = e.pageX + 'px';
+                            menu.style.top = e.pageY + 'px';
+                            
+                            // Update Focus Text
+                            const focusItem = document.getElementById('ctx-focus-{project["id"]}');
+                            if (focusItem) {{
+                                if (row.classList.contains('focused')) {{
+                                    focusItem.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg> Remover Foco';
+                                }} else {{
+                                     focusItem.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg> Modo Foco';
+                                }}
+                            }}
+                        }}
+                    }});
+
+                    document.addEventListener('click', function(e) {{
+                        const menu = document.getElementById('context-menu-{project["id"]}');
+                        if (menu) menu.style.display = 'none';
+                    }});
+
+                    document.getElementById('ctx-focus-{project["id"]}').addEventListener('click', function() {{
+                        if (!currentContextMenuTask) return;
+                        const targetRow = document.querySelector(`.gantt-row[data-task="${{currentContextMenuTask}}"]`);
+                        
+                        const chartBody = document.getElementById('chart-body-{project["id"]}');
+                        const isAlreadyFocused = targetRow.classList.contains('focused');
+                        
+                        if (isAlreadyFocused) {{
+                            chartBody.querySelectorAll('.gantt-row').forEach(row => {{
+                                row.classList.remove('focused');
+                            }});
+                            chartBody.classList.remove('focus-mode-active');
+                        }} else {{
+                            chartBody.querySelectorAll('.gantt-row').forEach(row => {{
+                                row.classList.remove('focused');
+                            }});
+                            chartBody.classList.add('focus-mode-active');
+                            targetRow.classList.add('focused');
+                        }}
+                    }});
+
+                    document.getElementById('ctx-note-{project["id"]}').addEventListener('click', function() {{
+                        if (!currentContextMenuTask) return;
+                        
+                        const noteKey = '{project["name"]}|' + currentContextMenuTask;
+                        const currentNote = taskNotes[noteKey] || "";
+                        
+                        const newNote = prompt("Editar nota para " + currentContextMenuTask + ":", currentNote);
+                        
+                        if (newNote !== null) {{
+                            const safeNote = encodeURIComponent(newNote);
+                            const safeTask = encodeURIComponent(currentContextMenuTask);
+                            const safeEmp = encodeURIComponent('{project["name"]}');
+                            
+                            window.location.search = `?action=save_note&emp=${{safeEmp}}&task=${{safeTask}}&note=${{safeNote}}`;
+                        }}
+                    }});
+
+                    // Initialize
                     initGantt();
+                    updateNotesIndicators();
                 </script>
             </body>
             </html>
@@ -2148,7 +2326,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                 border-color: #007bff !important;
                 color: #007bff !important;
                 transform: translateY(-2px) !important;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+                box-shadow: 0 44px 8px rgba(0,0,0,0.15) !important;
             }
         </style>
         """, unsafe_allow_html=True)
@@ -2377,6 +2555,12 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
         "empreendimentos": ["Todos"] + empreendimentos_no_df, # Renomeado
         "etapas_consolidadas": sorted(all_stage_names_full) # Novo (sem "Todos")
     }
+
+    # --- Carregar Notas (Consolidado) ---
+    if notes_handler:
+        notes_dict = notes_handler.load_notes()
+    else:
+        notes_dict = {}
 
     # Pegar os dados da *primeira* etapa selecionada para a renderização inicial
     tasks_base_data_inicial = all_data_by_stage_js.get(etapa_selecionada_inicialmente, [])
@@ -2714,8 +2898,19 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                         </div>
                     </div>
                 </div>
-                <div class="tooltip" id="tooltip-{project["id"]}"></div>
-            </div>
+                    <div class="tooltip" id="tooltip-{project["id"]}"></div>
+
+                    <div id="context-menu-{project['id']}" class="context-menu">
+                        <div class="context-menu-item" id="ctx-focus-{project['id']}">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            Modo Foco
+                        </div>
+                        <div class="context-menu-item" id="ctx-note-{project['id']}">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            Adicionar Nota
+                        </div>
+                    </div>
+                </div>
 
             {''''''}
             <script src="https://cdn.jsdelivr.net/npm/virtual-select-plugin@1.0.39/dist/virtual-select.min.js"></script>
@@ -2735,6 +2930,9 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                 
                 // 'allTasks_baseData' agora armazena os dados "crus" da etapa ATUAL
                 let allTasks_baseData = {json.dumps(tasks_base_data_inicial)}; 
+                
+                const taskNotes = {json.dumps(notes_dict)};
+                let currentContextMenuTask = null; 
                 
                 const initialStageName = {json.dumps(etapa_selecionada_inicialmente)};
                 let currentStageName = initialStageName;
@@ -3013,6 +3211,10 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                     bar.style.width = width + 'px';
                     const barLabel = document.createElement('span'); 
                     barLabel.className = 'bar-label'; 
+                    // Check Note (Consolidated)
+                    const noteKey = task.name + '|' + currentStageName;
+                    if (taskNotes[noteKey]) barLabel.classList.add('has-note');
+
                     barLabel.textContent = task.name + ' (' + task.progress + '%)'; 
                     bar.appendChild(barLabel);
                     bar.addEventListener('mousemove', e => showTooltip(e, task, tipo));
@@ -3314,6 +3516,71 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                 console.log('Tasks base consolidado (inicial):', allTasks_baseData);
                 console.log('TODOS os dados de etapa (full):', allDataByStage);
                 
+                // --- Context Menu Logic (Consolidated) ---
+                document.addEventListener('contextmenu', function(e) {{
+                    const row = e.target.closest('.gantt-row');
+                    
+                    if (row) {{
+                        e.preventDefault();
+                        currentContextMenuTask = row.getAttribute('data-task'); // Empreendimento Name
+                        
+                        const menu = document.getElementById('context-menu-{project["id"]}');
+                        menu.style.display = 'block';
+                        menu.style.left = e.pageX + 'px';
+                        menu.style.top = e.pageY + 'px';
+                        
+                        // Update Focus Text
+                         const focusItem = document.getElementById('ctx-focus-{project["id"]}');
+                        if (focusItem) {{
+                            if (row.classList.contains('focused')) {{
+                                focusItem.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg> Remover Foco';
+                            }} else {{
+                                 focusItem.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg> Modo Foco';
+                            }}
+                        }}
+                    }}
+                }});
+                
+                document.addEventListener('click', function(e) {{
+                    const menu = document.getElementById('context-menu-{project["id"]}');
+                    if (menu) menu.style.display = 'none';
+                }});
+
+                 document.getElementById('ctx-focus-{project["id"]}').addEventListener('click', function() {{
+                        if (!currentContextMenuTask) return;
+                        const targetRow = document.querySelector(`.gantt-row[data-task="${{currentContextMenuTask}}"]`);
+                        
+                        const chartBody = document.getElementById('chart-body-{project["id"]}');
+                        const isAlreadyFocused = targetRow.classList.contains('focused');
+                        
+                        if (isAlreadyFocused) {{
+                            targetRow.classList.remove('focused');
+                            if (!chartBody.querySelector('.focused')) {{
+                                chartBody.classList.remove('focus-mode-active');
+                            }}
+                        }} else {{
+                            chartBody.classList.add('focus-mode-active');
+                            targetRow.classList.add('focused');
+                        }}
+                    }});
+
+                document.getElementById('ctx-note-{project["id"]}').addEventListener('click', function() {{
+                    if (!currentContextMenuTask) return;
+                    
+                    const noteKey = currentContextMenuTask + '|' + currentStageName;
+                    const currentNote = taskNotes[noteKey] || "";
+                    
+                    const newNote = prompt("Editar nota para " + currentContextMenuTask + " (" + currentStageName + "):", currentNote);
+                    
+                    if (newNote !== null) {{
+                        const safeNote = encodeURIComponent(newNote);
+                        const safeEmp = encodeURIComponent(currentContextMenuTask);
+                        const safeTask = encodeURIComponent(currentStageName);
+                        
+                        window.location.search = `?action=save_note&emp=${{safeEmp}}&task=${{safeTask}}&note=${{safeNote}}`;
+                    }}
+                }});
+
                 // Inicializar o Gantt Consolidado
                 initGantt();
             </script>
