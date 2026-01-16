@@ -4968,7 +4968,7 @@ with st.spinner("Carregando e processando dados..."):
                                 if percentual == 100:
                                     if pd.notna(termino_real) and pd.notna(termino_previsto):
                                         if termino_real < termino_previsto:
-                                            return "color: #2EAF5B; font-weight: bold;"
+                                            return "color: #2EAF5B; font-weight: bold;" 
                                         elif termino_real > termino_previsto:
                                             return "color: #C30202; font-weight: bold;"
                                 elif pd.notna(termino_real) and (termino_real < hoje):
