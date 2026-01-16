@@ -1146,73 +1146,6 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     }}
 
                     /* ==== FLOATING NOTEPAD ==== */
-                    .floating-filter-menu {{
-                        display: none;
-                        position: fixed;
-                        top: 60px;
-                        right: 20px;
-                        width: 280px;
-                        background: white;
-                        border: 1px solid #cbd5e0;
-                        border-radius: 12px;
-                        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
-                        z-index: 1000;
-                        padding: 0;
-                        transition: width 0.3s ease;
-                    }}
-                    .floating-filter-menu.collapsed {{
-                        width: auto;
-                        min-width: 50px;
-                    }}
-                    .floating-filter-menu.collapsed .filter-menu-content {{
-                        display: none;
-                    }}
-                    .filter-menu-header {{
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        padding: 12px 15px;
-                        background: #f7fafc;
-                        border-bottom: 1px solid #e2e8f0;
-                        border-radius: 12px 12px 0 0;
-                    }}
-                    .floating-filter-menu.collapsed .filter-menu-header {{
-                        border-radius: 12px;
-                        border-bottom: none;
-                    }}
-                    .filter-menu-title {{
-                        font-size: 14px;
-                        font-weight: 600;
-                        color: #2d3748;
-                    }}
-                    .floating-filter-menu.collapsed .filter-menu-title {{
-                        display: none;
-                    }}
-                    .filter-toggle-btn {{
-                        background: none;
-                        border: none;
-                        padding: 4px;
-                        cursor: pointer;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        color: #4a5568;
-                        transition: all 0.2s ease;
-                        border-radius: 4px;
-                    }}
-                    .filter-toggle-btn:hover {{
-                        background: #e2e8f0;
-                        color: #2d3748;
-                    }}
-                    .filter-toggle-btn svg {{
-                        transition: transform 0.3s ease;
-                    }}
-                    .floating-filter-menu.collapsed .filter-toggle-btn svg {{
-                        transform: rotate(180deg);
-                    }}
-                    .filter-menu-content {{
-                        padding: 15px;
-                    }}
                     #floating-notepad {{
                         display: none;
                         position: fixed;
@@ -2153,23 +2086,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     }}
 
                     function updatePulmaoInputVisibility() {{
-                        const btnFilter = document.getElementById('filter-btn-{project["id"]}');
-                    const menuFilter = document.getElementById('filter-menu-{project["id"]}');
-                    const filterToggleBtn = document.getElementById('filter-toggle-{project["id"]}');
-
-                    if (btnFilter && menuFilter) {{
-                        btnFilter.addEventListener('click', () => {{
-                            menuFilter.style.display = menuFilter.style.display === 'block' ? 'none' : 'block';
-                        }});
-                    }}
-                    
-                    if (filterToggleBtn && menuFilter) {{
-                        filterToggleBtn.addEventListener('click', (e) => {{
-                            e.stopPropagation();
-                            menuFilter.classList.toggle('collapsed');
-                        }});
-                    }}
-                 const radioCom = document.getElementById('filter-pulmao-com-{project["id"]}');
+                        const radioCom = document.getElementById('filter-pulmao-com-{project["id"]}');
                         const mesesGroup = document.getElementById('pulmao-meses-group-{project["id"]}');
                         if (radioCom && mesesGroup) {{ 
                             if (radioCom.checked) {{
@@ -3210,15 +3127,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                 </div>
 
                 <div class="floating-filter-menu" id="filter-menu-{project['id']}">
-                    <div class="filter-menu-header">
-                        <span class="filter-menu-title">Filtros</span>
-                        <button class="filter-toggle-btn" id="filter-toggle-{project['id']}" title="Recolher/Expandir">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M15 19l-7-7 7-7"></path>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="filter-menu-content" id="filter-menu-content-{project['id']}">
+                    
                     <div class="filter-group">
                         <label for="filter-etapa-consolidada-{project['id']}">Etapa (Visão Atual)</label>
                         <select id="filter-etapa-consolidada-{project['id']}">
@@ -3255,7 +3164,6 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
 
                 
                     <button class="filter-apply-btn" id="filter-apply-btn-{project['id']}">Aplicar Filtros</button>
-                    </div>
                 </div>
 
                 <div class="gantt-main">
@@ -3818,16 +3726,6 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                     if(visRadio) visRadio.checked = true;
 
                     filtersPopulated = true;
-                }}
-                
-                // *** FILTRO COLAPSÁVEL - TOGGLE ***
-                const filterToggleBtn = document.getElementById('filter-toggle-{project["id"]}');
-                const menuFilter = document.getElementById('filter-menu-{project["id"]}');
-                if (filterToggleBtn && menuFilter) {{
-                    filterToggleBtn.addEventListener('click', (e) => {{
-                        e.stopPropagation();
-                        menuFilter.classList.toggle('collapsed');
-                    }});
                 }}
 
                 // *** FUNÇÃO updateProjectTitle (Nova/Modificada) ***
@@ -4968,7 +4866,7 @@ with st.spinner("Carregando e processando dados..."):
                                 if percentual == 100:
                                     if pd.notna(termino_real) and pd.notna(termino_previsto):
                                         if termino_real < termino_previsto:
-                                            return "color: #2EAF5B; font-weight: bold;" 
+                                            return "color: #2EAF5B; font-weight: bold;"
                                         elif termino_real > termino_previsto:
                                             return "color: #C30202; font-weight: bold;"
                                 elif pd.notna(termino_real) and (termino_real < hoje):
