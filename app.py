@@ -3043,6 +3043,43 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                 .toolbar-btn.is-fullscreen:hover {{
                     background-color: #2563eb;
                 }}
+                /* Tira o background do container quando colapsado e esconde botões */
+                .gantt-toolbar.collapsed {{
+                    background: transparent;
+                    box-shadow: none;
+                    padding: 0;
+                    pointer-events: none;
+                    top: 3px; /* Alinha com o botão de toggle da sidebar */
+                }}
+                .gantt-toolbar.collapsed .toolbar-btn {{
+                    display: none;
+                }}
+                /* O botão de toggle sempre aparece, mas muda de estilo quando colapsado */
+                .gantt-toolbar.collapsed .toolbar-toggle-btn {{
+                    display: flex;
+                    pointer-events: auto;
+                    background: rgba(255, 255, 255, 0.3);
+                    color: #4a5568;
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 4px;
+                    backdrop-filter: blur(2px);
+                }}
+                .gantt-toolbar.collapsed .toolbar-toggle-btn:hover {{
+                    background: rgba(255, 255, 255, 0.8);
+                    opacity: 1;
+                    transform: scale(1.1);
+                }}
+                .toolbar-toggle-btn {{
+                     /* Botão normal dentro da toolbar */
+                     margin-bottom: 2px;
+                }}
+                .toolbar-toggle-btn svg {{
+                    transition: transform 0.3s ease;
+                }}
+                .gantt-toolbar.collapsed .toolbar-toggle-btn svg {{
+                    transform: rotate(180deg);
+                }}
                  /* *** INÍCIO: Arredondar Dropdown Virtual Select *** */
                     .floating-filter-menu .vscomp-dropbox {{
                         border-radius: 8px; /* Controla o arredondamento dos cantos do dropdown */
