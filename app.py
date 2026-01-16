@@ -936,10 +936,25 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     /* O botão de toggle sempre aparece, mas muda de estilo quando colapsado */
                     .gantt-toolbar.collapsed .toolbar-toggle-btn {{
                         display: flex;
-                        pointer-events: auto; /* IMPORTANTE: permitir clique no botão */
-                        background: rgba(45, 55, 72, 0.9);
-                        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-                        transform: rotate(180deg);
+                        pointer-events: auto;
+                        background: rgba(255, 255, 255, 0.3);
+                        color: #4a5568;
+                        width: 24px;
+                        height: 24px;
+                        border-radius: 4px;
+                        backdrop-filter: blur(2px);
+                    }}
+                    .gantt-toolbar.collapsed .toolbar-toggle-btn:hover {{
+                        background: rgba(255, 255, 255, 0.8);
+                        opacity: 1;
+                        transform: scale(1.1);
+                    }}
+                    .toolbar-toggle-btn {{
+                         /* Botão normal dentro da toolbar */
+                         margin-bottom: 2px;
+                    }}
+                    .toolbar-toggle-btn svg {{
+                        transition: transform 0.3s ease;
                     }}
                     .floating-filter-menu {{
                         display: none;
