@@ -3045,7 +3045,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                     border: 1px solid #cbd5e0; border-radius: 4px;
                     font-size: 13px;
                 }}
-                .filter-menu-header{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;background:#f7fafc;border-bottom:1px solid #e2e8f0;border-radius:12px 12px 0 0}.floating-filter-menu.collapsed .filter-menu-header{border-radius:12px;border-bottom:none}.filter-menu-title{font-size:14px;font-weight:600;color:#2d3748}.floating-filter-menu.collapsed .filter-menu-title{display:none}.filter-toggle-btn{background:none;border:none;padding:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#4a5568;transition:all .2s ease;border-radius:4px}.filter-toggle-btn:hover{background:#e2e8f0;color:#2d3748}.filter-toggle-btn svg{transition:transform .3s ease}.floating-filter-menu.collapsed .filter-toggle-btn svg{transform:rotate(180deg)}.filter-menu-content{padding:15px}.floating-filter-menu.collapsed .filter-menu-content{display:none}.floating-filter-menu{padding:0;transition:width .3s ease}.floating-filter-menu.collapsed{width:auto;min-width:50px}
+
                 .filter-group-radio, .filter-group-checkbox {{
                     display: flex; align-items: center; padding: 5px 0;
                 }}
