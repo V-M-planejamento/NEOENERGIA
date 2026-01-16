@@ -922,6 +922,25 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     .toolbar-btn.is-fullscreen:hover {{
                         background-color: #2563eb;
                     }}
+                    /* Tira o background do container quando colapsado e esconde botões */
+                    .gantt-toolbar.collapsed {{
+                        background: transparent;
+                        box-shadow: none;
+                        padding: 0;
+                        pointer-events: none;
+                        top: 3px; /* Alinha com o botão de toggle da sidebar */
+                    }}
+                    .gantt-toolbar.collapsed .toolbar-btn {{
+                        display: none;
+                    }}
+                    /* O botão de toggle sempre aparece, mas muda de estilo quando colapsado */
+                    .gantt-toolbar.collapsed .toolbar-toggle-btn {{
+                        display: flex;
+                        pointer-events: auto; /* IMPORTANTE: permitir clique no botão */
+                        background: rgba(45, 55, 72, 0.9);
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+                        transform: rotate(180deg);
+                    }}
                     .floating-filter-menu {{
                         display: none;
                         position: absolute;
@@ -2064,10 +2083,11 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         if (toolbarToggleBtn) {{
                             toolbarToggleBtn.addEventListener('click', (e) => {{
                                 e.stopPropagation();
-                                toggleSidebar();
-                                // Se a sidebar estiver colapsada, fecha o menu de filtro se estiver aberto
-                                const sidebarWrapper = document.getElementById('gantt-sidebar-wrapper-{project["id"]}');
-                                if (sidebarWrapper && sidebarWrapper.classList.contains('collapsed')) {{
+                                const toolbar = document.getElementById('gantt-toolbar-{project["id"]}');
+                                if (toolbar) toolbar.classList.toggle('collapsed');
+                                
+                                // Se a toolbar estiver colapsada, fecha o menu de filtro se estiver aberto
+                                if (toolbar && toolbar.classList.contains('collapsed')) {{
                                     if (filterMenu) filterMenu.classList.remove('is-open');
                                 }}
                             }});
@@ -3649,10 +3669,11 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                     if (toolbarToggleBtn) {{
                         toolbarToggleBtn.addEventListener('click', (e) => {{
                             e.stopPropagation();
-                            toggleSidebar();
-                            // Se a sidebar estiver colapsada, fecha o menu de filtro se estiver aberto
-                            const sidebarWrapper = document.getElementById('gantt-sidebar-wrapper-{project["id"]}');
-                            if (sidebarWrapper && sidebarWrapper.classList.contains('collapsed')) {{
+                            const toolbar = document.getElementById('gantt-toolbar-{project["id"]}');
+                            if (toolbar) toolbar.classList.toggle('collapsed');
+                            
+                            // Se a toolbar estiver colapsada, fecha o menu de filtro se estiver aberto
+                            if (toolbar && toolbar.classList.contains('collapsed')) {{
                                 if (filterMenu) filterMenu.classList.remove('is-open');
                             }}
                         }});
