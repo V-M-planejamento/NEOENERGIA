@@ -1062,126 +1062,11 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         border-color: #007AFF;
                     }}
 
-                    .toolbar-btn span svg {{
-                        width: 16px;
-                        height: 16px;
-                    }}
-
-                    /* ==== FLOATING FILTER MENU ==== */
-                    .floating-filter-menu {{
-                        display: none;
-                        position: fixed;
-                        top: 70px;
-                        right: 20px;
-                        width: 300px;
-                        background: white;
-                        border: 1px solid #cbd5e0;
-                        border-radius: 12px;
-                        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-                        z-index: 1000;
-                        overflow: hidden;
-                        transition: width 0.3s ease, height 0.3s ease;
-                    }}
-                    .floating-filter-menu.is-open {{
-                        display: block;
-                    }}
-                    .floating-filter-menu.is-collapsed {{
-                        width: 50px;
-                        height: 50px;
-                    }}
-                    .filter-menu-header {{
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        padding: 12px 15px;
-                        background: #f7fafc;
-                        border-bottom: 1px solid #e2e8f0;
-                        cursor: move;
-                    }}
-                    .filter-menu-title {{
-                        font-size: 14px;
-                        font-weight: 600;
-                        color: #2d3748;
-                        transition: opacity 0.2s;
-                    }}
-                    .floating-filter-menu.is-collapsed .filter-menu-title {{
-                        opacity: 0;
-                        width: 0;
-                        overflow: hidden;
-                    }}
-                    .filter-toggle-btn {{
-                        background: none;
-                        border: none;
-                        padding: 4px;
-                        cursor: pointer;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        color: #4a5568;
-                        transition: all 0.2s ease;
-                        border-radius: 4px;
-                        width: 24px;
-                        height: 24px;
-                    }}
-                    .filter-toggle-btn:hover {{
-                        background: #e2e8f0;
-                        color: #2d3748;
-                    }}
-                    .filter-toggle-btn svg {{
-                        width: 14px;
-                        height: 14px;
-                        transition: transform 0.3s ease;
-                    }}
-                    .floating-filter-menu.is-collapsed .filter-toggle-btn svg {{
-                        transform: rotate(180deg);
-                    }}
-                    .filter-menu-content {{
-                        padding: 15px;
-                        max-height: 70vh;
-                        overflow-y: auto;
-                        transition: opacity 0.2s;
-                    }}
-                    .floating-filter-menu.is-collapsed .filter-menu-content {{
-                        display: none;
-                    }}
-
-                    /* Estilos para os grupos de filtro */
-                    .filter-group {{
-                        margin-bottom: 15px;
-                    }}
-                    .filter-group label {{
-                        display: block;
-                        margin-bottom: 5px;
-                        font-weight: 500;
-                        font-size: 13px;
-                        color: #374151;
-                    }}
-                    .filter-group select {{
-                        width: 100%;
-                        padding: 8px;
-                        border: 1px solid #cbd5e0;
-                        border-radius: 6px;
-                        font-size: 13px;
-                    }}
-                    .filter-apply-btn {{
-                        width: 100%;
-                        padding: 10px;
-                        background: #3b82f6;
-                        color: white;
-                        border: none;
-                        border-radius: 6px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: background 0.2s;
-                    }}
-                    .filter-apply-btn:hover {{
-                        background: #2563eb;
-                    }}
                     .radial-item svg {{
                         width: 14px;
                         height: 14px;
                         transition: all 0.2s ease;
-                        fill: none;
+                        fill: #333333;
                         stroke: #333333;
                     }}
 
@@ -1393,20 +1278,12 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         <span>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                            </svg>
                         </span>
                     </button>
                 </div>
 
                     <div class="floating-filter-menu" id="filter-menu-{project['id']}">
-                        <div class="filter-menu-header">
-                            <span class="filter-menu-title">Filtros</span>
-                            <button class="filter-toggle-btn" id="filter-toggle-{project['id']}" title="Recolher/Expandir">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                    <path d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="filter-menu-content">
                     <div class="filter-group">
                         <label for="filter-project-{project['id']}">Empreendimento</label>
                         <select id="filter-project-{project['id']}"></select>
@@ -1441,7 +1318,6 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         </div>
                     </div>
                     <button class="filter-apply-btn" id="filter-apply-btn-{project['id']}">Aplicar Filtros</button>
-                        </div>
                 </div>
 
                     <div class="gantt-main">
@@ -2288,8 +2164,6 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         renderChart();
                         positionTodayLine();
                         positionMetaLine();
-
-
                         updateProjectTitle();
                     }}
 
@@ -2685,39 +2559,6 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         }});
                         
                         console.log('✅ Menu radial de contexto inicializado');
-                    }})();
-                    // ====== CONTROLE DO MENU DE FILTROS ======
-                    (function() {{
-                        const filterBtn = document.getElementById('filter-btn-{project["id"]}');
-                        const filterMenu = document.getElementById('filter-menu-{project["id"]}');
-                        const filterToggleBtn = document.getElementById('filter-toggle-{project["id"]}');
-                        
-                        if (filterBtn && filterMenu) {{
-                            filterBtn.addEventListener('click', (e) => {{
-                                e.stopPropagation();
-                                filterMenu.classList.toggle('is-open');
-                                if (filterMenu.classList.contains('is-open')) {{
-                                    filterMenu.classList.remove('is-collapsed');
-                                }}
-                            }});
-                        }}
-                        
-                        if (filterToggleBtn && filterMenu) {{
-                            filterToggleBtn.addEventListener('click', (e) => {{
-                                e.stopPropagation();
-                                filterMenu.classList.toggle('is-collapsed');
-                            }});
-                        }}
-                        
-                        document.addEventListener('click', (e) => {{
-                            if (filterMenu && filterBtn) {{
-                                if (!filterMenu.contains(e.target) && !filterBtn.contains(e.target)) {{
-                                    filterMenu.classList.remove('is-open');
-                                }}
-                            }}
-                        }});
-                        
-                        console.log('✅ Menu de filtros colapsável inicializado');
                     }})();
                 </script>
             </body>
