@@ -1199,20 +1199,20 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         color: #4a5568;
                         transition: all 0.2s ease;
                         border-radius: 4px;
-                    }
-                    .filter-toggle-btn:hover {
+                    }}
+                    .filter-toggle-btn:hover {{
                         background: #e2e8f0;
                         color: #2d3748;
-                    }
-                    .filter-toggle-btn svg {
+                    }}
+                    .filter-toggle-btn svg {{
                         transition: transform 0.3s ease;
-                    }
-                    .floating-filter-menu.collapsed .filter-toggle-btn svg {
+                    }}
+                    .floating-filter-menu.collapsed .filter-toggle-btn svg {{
                         transform: rotate(180deg);
-                    }
-                    .filter-menu-content {
+                    }}
+                    .filter-menu-content {{
                         padding: 15px;
-                    }
+                    }}
                     #floating-notepad {{
                         display: none;
                         position: fixed;
