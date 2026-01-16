@@ -956,6 +956,9 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     .toolbar-toggle-btn svg {{
                         transition: transform 0.3s ease;
                     }}
+                    .gantt-toolbar.collapsed .toolbar-toggle-btn svg {{
+                        transform: rotate(180deg);
+                    }}
                     .floating-filter-menu {{
                         display: none;
                         position: absolute;
