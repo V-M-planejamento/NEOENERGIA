@@ -1267,6 +1267,13 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     </div>
                     
                 <div class="gantt-toolbar" id="gantt-toolbar-{project["id"]}">
+                    <button class="toolbar-btn toolbar-toggle-btn" id="toolbar-toggle-btn-{project["id"]}" title="Recolher/Expandir Tabela">
+                        <span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="18 15 12 9 6 15"></polyline>
+                            </svg>
+                        </span>
+                    </button>
                     <button class="toolbar-btn" id="filter-btn-{project["id"]}" title="Filtros">
                         <span>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2050,7 +2057,21 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         const applyBtn = document.getElementById('filter-apply-btn-{project["id"]}');
                         if (applyBtn) applyBtn.addEventListener('click', () => applyFiltersAndRedraw());
 
+
                         if (fullscreenBtn) fullscreenBtn.addEventListener('click', () => toggleFullscreen());
+
+                        const toolbarToggleBtn = document.getElementById('toolbar-toggle-btn-{project["id"]}');
+                        if (toolbarToggleBtn) {{
+                            toolbarToggleBtn.addEventListener('click', (e) => {{
+                                e.stopPropagation();
+                                toggleSidebar();
+                                // Se a sidebar estiver colapsada, fecha o menu de filtro se estiver aberto
+                                const sidebarWrapper = document.getElementById('gantt-sidebar-wrapper-{project["id"]}');
+                                if (sidebarWrapper && sidebarWrapper.classList.contains('collapsed')) {{
+                                    if (filterMenu) filterMenu.classList.remove('is-open');
+                                }}
+                            }});
+                        }}
 
                         // Adiciona listener para o botão de filtro
                         if (filterBtn) {{
@@ -3110,6 +3131,13 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                     </div>
                     
                     <div class="gantt-toolbar" id="gantt-toolbar-{project["id"]}">
+                        <button class="toolbar-btn toolbar-toggle-btn" id="toolbar-toggle-btn-{project["id"]}" title="Recolher/Expandir Tabela">
+                            <span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="18 15 12 9 6 15"></polyline>
+                                </svg>
+                            </span>
+                        </button>
                         <button class="toolbar-btn" id="filter-btn-{project["id"]}" title="Filtros">
                         <span>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -3616,6 +3644,19 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                     if (applyBtn) applyBtn.addEventListener('click', () => applyFiltersAndRedraw());
 
                     if (fullscreenBtn) fullscreenBtn.addEventListener('click', () => toggleFullscreen());
+
+                    const toolbarToggleBtn = document.getElementById('toolbar-toggle-btn-{project["id"]}');
+                    if (toolbarToggleBtn) {{
+                        toolbarToggleBtn.addEventListener('click', (e) => {{
+                            e.stopPropagation();
+                            toggleSidebar();
+                            // Se a sidebar estiver colapsada, fecha o menu de filtro se estiver aberto
+                            const sidebarWrapper = document.getElementById('gantt-sidebar-wrapper-{project["id"]}');
+                            if (sidebarWrapper && sidebarWrapper.classList.contains('collapsed')) {{
+                                if (filterMenu) filterMenu.classList.remove('is-open');
+                            }}
+                        }});
+                    }}
 
                     // Adiciona listener para o botão de filtro
                     if (filterBtn) {{
